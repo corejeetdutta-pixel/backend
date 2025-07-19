@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: recruitment-backend
+    env: java
+    buildCommand: "./mvnw clean package"
+    startCommand: "java -jar target/recruitment-0.0.1-SNAPSHOT.jar"
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:mysql://your-db-host:3306/recruitment_auth
+      - key: SPRING_DATASOURCE_USERNAME
+        value: root
+      - key: SPRING_DATASOURCE_PASSWORD
+        value: Rishav2001
+      - key: SPRING_MAIL_USERNAME
+        value: corebursanarishav@gmail.com
+      - key: SPRING_MAIL_PASSWORD
+        value: vdvm jyek oern sbyy
+      - key: SPRING_AI_OLLAMA_BASE_URL
+        value: http://localhost:11434
