@@ -1,10 +1,16 @@
 services:
   - type: web
-    name: recruitment-backend
-    env: java
-    buildCommand: "./mvnw clean package"
-    startCommand: "java -jar target/recruitment-0.0.1-SNAPSHOT.jar"
+    name: recruitmente2e-1
+    env: docker
+    plan: free
+    region: oregon
+
+    buildCommand: ./mvnw clean package -DskipTests
+    startCommand: java -jar target/recruitmente2e-0.0.1-SNAPSHOT.jar
+
     envVars:
+      - key: JAVA_VERSION
+        value: 21
       - key: SPRING_DATASOURCE_URL
         value: jdbc:mysql://your-db-host:3306/recruitment_auth
       - key: SPRING_DATASOURCE_USERNAME
