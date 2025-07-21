@@ -1,24 +1,29 @@
-# Stage 1: Build the app
+# -------- Stage 1: Build the Spring Boot App --------
 FROM eclipse-temurin:21-jdk-alpine as builder
+
+# Set working directory inside builder container
 WORKDIR /build
 
+# Copy all source files
 COPY . .
 
-# Fix: make mvnw executable
-RUN chmod +x ./mvnw
+# Make mvnw executable (for wrapper-based projects)
+RUN chmod +x mvnw
 
-# Build the project
+# Build the app and skip tests
 RUN ./mvnw clean package -DskipTests
 
-# Stage 2: Run the app
+# -------- Stage 2: Run the Spring Boot App --------
 FROM eclipse-temurin:21-jdk-alpine
+
+# Set working directory inside runtime container
 WORKDIR /app
 
-# Copy the jar from the builder stage
+# Copy only the built jar from the builder stage
 COPY --from=builder /build/target/*.jar app.jar
 
-# Expose port (Spring Boot default)
+# Expose Spring Boot port
 EXPOSE 8080
 
-# Run the application
+# Run the app
 ENTRYPOINT ["java", "-jar", "app.jar"]

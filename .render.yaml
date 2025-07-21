@@ -1,18 +1,14 @@
 services:
   - type: web
-    name: recruitmente2e-1
+    name: recruitmente2e
     env: docker
     plan: free
     region: oregon
-
     buildCommand: ./mvnw clean package -DskipTests
     startCommand: java -jar target/recruitmente2e-0.0.1-SNAPSHOT.jar
-
     envVars:
-      - key: JAVA_VERSION
-        value: 21
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:mysql://your-db-host:3306/recruitment_auth
+        value: jdbc:mysql://<your-db-host>:3306/recruitment_auth
       - key: SPRING_DATASOURCE_USERNAME
         value: root
       - key: SPRING_DATASOURCE_PASSWORD
@@ -21,5 +17,3 @@ services:
         value: corebursanarishav@gmail.com
       - key: SPRING_MAIL_PASSWORD
         value: vdvm jyek oern sbyy
-      - key: SPRING_AI_OLLAMA_BASE_URL
-        value: http://localhost:11434
