@@ -18,7 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/ai/jd")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = "https://1c.atract.in/", allowCredentials = "true")
 public class AIController {
 
     private final OllamaChatModel model;

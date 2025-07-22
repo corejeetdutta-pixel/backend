@@ -6,7 +6,7 @@
 //
 //import com.recruitment.service.OpenAIService;
 //
-//@CrossOrigin(origins = "http://localhost:5173")
+//@CrossOrigin(origins = "https://1c.atract.in/")
 //@RestController
 //@RequestMapping("/api/jd")
 //public class JDController {

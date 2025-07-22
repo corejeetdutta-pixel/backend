@@ -17,7 +17,7 @@ import jakarta.transaction.Transactional;
 
 @RestController
 @RequestMapping("/api/jobs")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = "https://1c.atract.in/", allowCredentials = "true")
 public class JobController {
 
     @Autowired
