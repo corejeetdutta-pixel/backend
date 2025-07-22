@@ -7,7 +7,7 @@ WORKDIR /build
 # Copy all source files
 COPY . .
 
-# Make mvnw executable (for wrapper-based projects)
+# Make mvnw executable
 RUN chmod +x mvnw
 
 # Build the app and skip tests
