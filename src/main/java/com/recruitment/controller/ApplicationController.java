@@ -7,16 +7,18 @@ import com.recruitment.entity.Application;
 import com.recruitment.repository.ApplicationRepository;
 import com.recruitment.repository.JobRepository;
 import com.recruitment.repository.UserRepo;
+import com.recruitment.service.ApplicationService;
 import com.recruitment.service.EmailService;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/applications")
-@CrossOrigin(origins = "https://1c.atract.in/", allowCredentials = "true")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class ApplicationController {
 
     @Autowired
@@ -30,6 +32,9 @@ public class ApplicationController {
 
     @Autowired
     private EmailService emailService;
+    
+    @Autowired
+    private ApplicationService applicationService;
 
     @PostMapping("/apply")
     public String applyToJob(@RequestBody ApplicationRequest request) throws Exception {
@@ -43,23 +48,27 @@ public class ApplicationController {
         ObjectMapper mapper = new ObjectMapper();
         String answersJson = mapper.writeValueAsString(request.getAnswers());
 
-        // 1. Save application
+        // 1. Get job entity first (required to set in Application)
+        var job = jobRepository.findByJobId(request.getJobId())
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+
+        // 2. Save application with new fields
         Application application = new Application();
         application.setJobId(request.getJobId());
         application.setUserId(request.getUserId());
         application.setAnswers(answersJson);
         application.setScore(request.getScore());
         application.setQualified(request.getQualified());
+        application.setStatus("Pending");      // ✅ default status
+        application.setJob(job);               // ✅ set job reference
         repository.save(application);
         System.out.println("apply part 1");
 
-        // 2. Get job and employer details
-        var job = jobRepository.findByJobId(request.getJobId())
-                .orElseThrow(() -> new RuntimeException("Job not found"));
+        // 3. Get employer email
         String employerEmail = job.getPostedBy().getEmail();
         System.out.println("apply part 2");
 
-        // 3. Get full user details
+        // 4. Get full user details
         var userEntity = userRepository.findByUserId(request.getUserId()).orElseThrow();
         var userDto = new UserDto();
         userDto.setName(userEntity.getName());
@@ -73,16 +82,18 @@ public class ApplicationController {
         userDto.setResume(userEntity.getResume());
         System.out.println("apply part 3");
 
-        // 4. Send email to employer
+        // 5. Send email to employer
         try {
             emailService.sendApplicationEmail(
                     employerEmail,
                     userDto,
                     job.getTitle(),
+                    job.getJobId(),
                     job.getDescription(),
                     answersJson,
                     request.getScore()
             );
+            System.out.println("mail is triggered");
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("exception part");
@@ -90,6 +101,12 @@ public class ApplicationController {
         }
 
         return "✅ Application submitted successfully.";
+    }
+    
+    @GetMapping("/employer/{empId}")
+    public ResponseEntity<List<Application>> getEmployerApplications(@PathVariable String empId) {
+        List<Application> apps = applicationService.getApplicationsByEmployer(empId);
+        return ResponseEntity.ok(apps);
     }
 
     @GetMapping("/count")

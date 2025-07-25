@@ -18,4 +18,9 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> filterJobs(String location, String company);
 
     Optional<Job> findByJobId(String jobId); // ✅ Returns Optional
+    long countByPostedBy_EmpId(String empId);
+    
+    
+ // ✅ Custom method to find jobs by employer ID (assumes postedBy is of type Employee)
+    List<Job> findByPostedBy_EmpId(String empId);
 }

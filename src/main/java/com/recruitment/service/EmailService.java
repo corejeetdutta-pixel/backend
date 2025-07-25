@@ -25,6 +25,7 @@ public class EmailService {
             String employerEmail,
             UserDto user,
             String jobTitle,
+            String jobId,
             String jobDescription,
             String answersJson,
             int score
@@ -45,6 +46,7 @@ public class EmailService {
         sb.append("<p><strong>Passout Year:</strong> ").append(user.getPassoutYear()).append("</p>");
         sb.append("<p><strong>Skills:</strong> ").append(user.getSkills()).append("</p>");
         sb.append("<p><strong>Job Title:</strong> ").append(jobTitle).append("</p>");
+        sb.append("<p><strong>Job Id:</strong> ").append(jobId).append("</p>");
         sb.append("<p><strong>Job Description:</strong> ").append(jobDescription).append("</p>");
         sb.append("<p><strong>Score:</strong> ").append(score).append("</p>");
         sb.append("<p><strong>Answers:</strong><br><pre>").append(answersJson).append("</pre></p>");

@@ -18,7 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/ai/jd")
-@CrossOrigin(origins = "https://1c.atract.in/", allowCredentials = "true")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class AIController {
 
     private final OllamaChatModel model;
@@ -29,9 +29,11 @@ public class AIController {
     public AIController(OllamaChatModel model) {
         this.model = model;
     }
-
+    // this is for job Description Generation automatically
     @PostMapping("/generate")
     public ResponseEntity<String> generateJD(@RequestBody Map<String, String> jobDetails) {
+    	
+    	System.out.println("job description is triggered");
 
         String prompt = String.format("""
         You are a professional job description generator.
@@ -81,6 +83,7 @@ public class AIController {
 
     @PostMapping("/generate-questions")
     public GenerateQuestionsResponse generateQuestions(@RequestBody GenerateQuestionsRequest request) {
+    	System.out.println("question generation is triggered");
         String prompt = String.format("""
             You are a professional interviewer.
             For the job title "%s", generate exactly 5 multiple-choice questions.

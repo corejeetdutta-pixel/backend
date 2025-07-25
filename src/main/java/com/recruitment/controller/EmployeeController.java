@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/auth/employee")
-@CrossOrigin(origins = "https://1c.atract.in/", allowCredentials = "true")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class EmployeeController {
 
     @Autowired
@@ -69,6 +69,7 @@ public class EmployeeController {
         if (emp == null) {
             return ResponseEntity.status(401).body("Not logged in");
         }
+        System.out.println("EmpId : " + emp.getEmpId());
         return ResponseEntity.ok(emp);
     }
 

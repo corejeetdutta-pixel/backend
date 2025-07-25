@@ -1,29 +1,38 @@
-//package com.recruitment.controller;
-//
-//import com.recruitment.entity.DashboardStats;
-//import com.recruitment.repository.ApplicationRepository;
-//import com.recruitment.repository.JobRepository;
-//
-////import com.recruitment.repository.JobRepository;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.web.bind.annotation.*;
-//
-//@RestController
-//@RequestMapping("/api/dashboard")
-//@CrossOrigin(origins = "http://localhost:5173")
-//public class DashboardController {
-//
-//    @Autowired private JobRepository jobRepo;
-//    @Autowired private ApplicationRepository appRepo;
-//
-//    @GetMapping("/stats")
-//    public DashboardStats getStats() {
-//        long jobsPosted = jobRepo.count();
-//        long applications = appRepo.count();
-//        System.out.println("total number of application + "+ applications);
-//        long hired = 4;        // You can fetch from DB if needed
-//        long interviews = 16;  // You can fetch from DB if needed
-//
-//        return new DashboardStats(jobsPosted, applications, hired, interviews);
-//    }
-//}
+package com.recruitment.controller;
+
+import com.recruitment.dto.DashboardStatsDto;
+import com.recruitment.entity.Application;
+import com.recruitment.entity.Job;
+import com.recruitment.repository.JobRepository;
+import com.recruitment.service.DashboardService;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/dashboard")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+public class DashboardController {
+
+    @Autowired
+    private DashboardService dashboardService;
+    
+    @Autowired
+    private JobRepository jobRepository; // ✅ Inject job repo
+
+    @GetMapping("/stats/{empId}")
+    public DashboardStatsDto getDashboardStats(@PathVariable String empId) {
+    	System.out.println("dashboard is triggered" +empId);
+        return dashboardService.getDashboardStats(empId);
+    }
+    
+ // ✅ New endpoint to fetch jobs posted by a specific employer
+    @GetMapping("/employer/{empId}")
+    public List<Job> getJobsByEmployer(@PathVariable String empId) {
+        System.out.println("Fetching jobs for employer: " + empId);
+        return jobRepository.findByPostedBy_EmpId(empId);
+    }
+}
