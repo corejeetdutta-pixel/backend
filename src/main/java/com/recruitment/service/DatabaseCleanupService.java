@@ -17,52 +17,77 @@ public class DatabaseCleanupService implements CommandLineRunner {
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Override
     @Transactional
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         System.out.println("Starting database cleanup...");
         
-        // List of tables with foreign key references to users table
-        List<String> userDependentTables = Arrays.asList(
-            "user_skills",
-            "applications",
-            "bookmarks",
-            "evaluation_records",
-            "evaluation_requests"
-        );
-        
-        // Disable foreign key checks temporarily
         try {
-            entityManager.createNativeQuery("SET CONSTRAINTS ALL DEFERRED").executeUpdate();
-            System.out.println("Temporarily disabled foreign key constraints");
-        } catch (Exception e) {
-            System.out.println("Could not disable constraints: " + e.getMessage());
-        }
-        
-        // Clean up orphaned records in all user-dependent tables
-        for (String table : userDependentTables) {
-            try {
-                String sql = String.format(
-                    "DELETE FROM %s WHERE user_id NOT IN (SELECT id FROM users)",
-                    table
-                );
-                int deleted = entityManager.createNativeQuery(sql).executeUpdate();
-                if (deleted > 0) {
-                    System.out.println(String.format("Cleaned up %d orphaned records from %s", deleted, table));
-                }
-            } catch (Exception e) {
-                System.out.println(String.format("Warning cleaning %s: %s", table, e.getMessage()));
+            // Check if users table exists before proceeding
+            if (!tableExists("users")) {
+                System.out.println("Users table not found, skipping cleanup");
+                return;
             }
-        }
-        
-        // Re-enable foreign key checks
-        try {
-            entityManager.createNativeQuery("SET CONSTRAINTS ALL IMMEDIATE").executeUpdate();
-            System.out.println("Re-enabled foreign key constraints");
+            
+            // Disable foreign key constraints
+            try {
+                jdbcTemplate.execute("SET CONSTRAINTS ALL DEFERRED");
+                System.out.println("Temporarily disabled foreign key constraints");
+            } catch (Exception e) {
+                System.err.println("Warning: Could not disable constraints - " + e.getMessage());
+            }
+            
+            // Clean up orphaned user_skills if table exists
+            cleanupOrphanedRecords("user_skills", "user_id");
+            
+            // Clean up other orphaned records if tables exist
+            cleanupOrphanedRecordsIfExists("applications", "user_id");
+            cleanupOrphanedRecordsIfExists("bookmarks", "user_id");
+            cleanupOrphanedRecordsIfExists("evaluation_records", "user_id");
+            cleanupOrphanedRecordsIfExists("evaluation_requests", "user_id");
+            
+            // Re-enable foreign key constraints
+            try {
+                jdbcTemplate.execute("SET CONSTRAINTS ALL IMMEDIATE");
+                System.out.println("Re-enabled foreign key constraints");
+            } catch (Exception e) {
+                System.err.println("Warning: Could not re-enable constraints - " + e.getMessage());
+            }
+            
         } catch (Exception e) {
-            System.out.println("Could not re-enable constraints: " + e.getMessage());
+            System.err.println("Error during database cleanup: " + e.getMessage());
+            // Don't rethrow to prevent application startup failure
         }
         
         System.out.println("Database cleanup completed successfully");
+    }
+    
+    private boolean tableExists(String tableName) {
+        try {
+            jdbcTemplate.queryForObject("SELECT 1 FROM " + tableName + " LIMIT 1", Integer.class);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Table " + tableName + " does not exist or is not accessible");
+            return false;
+        }
+    }
+    
+    private void cleanupOrphanedRecordsIfExists(String tableName, String foreignKeyColumn) {
+        if (tableExists(tableName)) {
+            cleanupOrphanedRecords(tableName, foreignKeyColumn);
+        }
+    }
+    
+    private void cleanupOrphanedRecords(String tableName, String foreignKeyColumn) {
+        try {
+            String sql = String.format("DELETE FROM %s WHERE %s NOT IN (SELECT id FROM users)", tableName, foreignKeyColumn);
+            int count = jdbcTemplate.update(sql);
+            System.out.println("Cleaned up " + count + " orphaned records from " + tableName);
+        } catch (Exception e) {
+            System.err.println("Warning cleaning " + tableName + ": " + e.getMessage());
+        }
     }
 }
