@@ -92,12 +92,18 @@ public class UserController {
 
             // Set session timeout to 30 minutes
             session.setMaxInactiveInterval(30 * 60);
+            // Set session attributes
             session.setAttribute("user", sessionUser);
+            session.setMaxInactiveInterval(30 * 60); // 30 minutes
             
             System.out.println("Login successful for user: " + existingUser.getEmail() + " (ID: " + existingUser.getId() + ")");
             
-            // Return user data (without sensitive information)
+            // Return user data (without sensitive information) with session cookie
             Map<String, Object> response = new HashMap<>();
+            
+            // Add CORS headers to the response
+            response.put("Access-Control-Allow-Credentials", "true");
+            response.put("Access-Control-Expose-Headers", "Set-Cookie");
             response.put("message", "Login successful");
             response.put("user", sessionUser);
             return ResponseEntity.ok(response);

@@ -63,8 +63,18 @@ public class EmployeeController {
             return ResponseEntity.status(401).body("Invalid password");
         }
 
+        // Set session timeout to 30 minutes
+        session.setMaxInactiveInterval(30 * 60);
         session.setAttribute("emp", existingEmp); // Set session key
-        return ResponseEntity.ok(existingEmp);    // Return employee object
+        
+        // Create response with CORS headers
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Login successful");
+        response.put("user", existingEmp);
+        response.put("Access-Control-Allow-Credentials", "true");
+        response.put("Access-Control-Expose-Headers", "Set-Cookie");
+        
+        return ResponseEntity.ok(response);    // Return response with CORS headers
     }
 
     // ✅ Get current logged-in employee
