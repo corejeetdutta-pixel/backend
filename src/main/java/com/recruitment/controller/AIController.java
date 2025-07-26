@@ -17,7 +17,6 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/ai/jd")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class AIController {
 		@Autowired
 		private final RestTemplate restTemplate;
