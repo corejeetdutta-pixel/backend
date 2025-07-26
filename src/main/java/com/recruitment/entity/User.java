@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.util.*;
 
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,28 +42,28 @@ public class User {
     
 
     public User(Long id, String userId, String name, String email, String password, String mobile, String address,
-			String gender, String qualification, String passoutYear, List<String> skills, String role,
-			String profilePicture, String resume) {
-		super();
-		this.id = id;
-		this.userId = userId;
-		this.name = name;
-		this.email = email;
-		this.password = password;
-		this.mobile = mobile;
-		this.address = address;
-		this.gender = gender;
-		this.qualification = qualification;
-		this.passoutYear = passoutYear;
-		this.skills = skills;
-		this.role = role;
-		this.profilePicture = profilePicture;
-		this.resume = resume;
-	}
+            String gender, String qualification, String passoutYear, List<String> skills, String role,
+            String profilePicture, String resume) {
+        super();
+        this.id = id;
+        this.userId = userId;
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.mobile = mobile;
+        this.address = address;
+        this.gender = gender;
+        this.qualification = qualification;
+        this.passoutYear = passoutYear;
+        this.skills = skills;
+        this.role = role;
+        this.profilePicture = profilePicture;
+        this.resume = resume;
+    }
 
 
 
-	// Getters and setters
+    // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
