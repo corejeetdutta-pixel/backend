@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/auth/employee")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:5173", "https://1c.atract.in"}, allowCredentials = "true")
 public class EmployeeController {
 
     @Autowired

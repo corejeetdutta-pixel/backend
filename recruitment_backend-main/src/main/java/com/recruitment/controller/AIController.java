@@ -17,52 +17,52 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/ai/jd")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:5173", "https://1c.atract.in"}, allowCredentials = "true")
 public class AIController {
-		@Autowired
-		private final RestTemplate restTemplate;
-	 	@Autowired
-	    private final ObjectMapper objectMapper;
-	    @Autowired
-	    private final EvaluationService evaluationService;
-	    private final String apiUrl;
-	    private final String apiKey;
+        @Autowired
+        private final RestTemplate restTemplate;
+        @Autowired
+        private final ObjectMapper objectMapper;
+        @Autowired
+        private final EvaluationService evaluationService;
+        private final String apiUrl;
+        private final String apiKey;
 
-	    public AIController(
-	        RestTemplate restTemplate,
-	        ObjectMapper objectMapper,
-	        EvaluationService evaluationService,
-	        @Value("${together.api.key}") String apiKey,
-	        @Value("${spring.ai.openai.base-url}") String apiUrl
-	    ) {
-	        this.restTemplate = restTemplate;
-	        this.objectMapper = objectMapper;
-	        this.evaluationService = evaluationService;
-	        this.apiKey = apiKey;
-	        this.apiUrl = apiUrl;
-	    }
+        public AIController(
+            RestTemplate restTemplate,
+            ObjectMapper objectMapper,
+            EvaluationService evaluationService,
+            @Value("${together.api.key}") String apiKey,
+            @Value("${spring.ai.openai.base-url}") String apiUrl
+        ) {
+            this.restTemplate = restTemplate;
+            this.objectMapper = objectMapper;
+            this.evaluationService = evaluationService;
+            this.apiKey = apiKey;
+            this.apiUrl = apiUrl;
+        }
 
-	    private String callTogetherAI(String userPrompt) {
-	        try {
-	            Map<String, Object> request = new HashMap<>();
-	            request.put("model", "meta-llama/Llama-3-70b-chat-hf");
-	            request.put("max_tokens", 1024);
-	            request.put("messages", List.of(Map.of("role", "user", "content", userPrompt)));
+        private String callTogetherAI(String userPrompt) {
+            try {
+                Map<String, Object> request = new HashMap<>();
+                request.put("model", "meta-llama/Llama-3-70b-chat-hf");
+                request.put("max_tokens", 1024);
+                request.put("messages", List.of(Map.of("role", "user", "content", userPrompt)));
 
-	            HttpHeaders headers = new HttpHeaders();
-	            headers.setContentType(MediaType.APPLICATION_JSON);
-	            headers.setBearerAuth(apiKey);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.setBearerAuth(apiKey);
 
-	            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
-	            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+                ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
 
-	            JsonNode root = objectMapper.readTree(response.getBody());
-	            return root.path("choices").get(0).path("message").path("content").asText();
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	            return "Error calling Together.ai";
-	        }
-	    }
+                JsonNode root = objectMapper.readTree(response.getBody());
+                return root.path("choices").get(0).path("message").path("content").asText();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return "Error calling Together.ai";
+            }
+        }
 
     @PostMapping("/generate")
     public ResponseEntity<String> generateJD(@RequestBody Map<String, String> jobDetails) {
