@@ -39,6 +39,11 @@ public class EmployeeController {
             );
         }
 
+        // Set default value for agreedToTerms if not provided
+        if (emp.getAgreedToTerms() == null) {
+            emp.setAgreedToTerms(true); // Default to true for registration
+        }
+
         repo.save(emp);
         return ResponseEntity.ok("Employee registered successfully");
     }

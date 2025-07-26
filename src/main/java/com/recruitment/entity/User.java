@@ -27,11 +27,9 @@ public class User {
 
     private String role = "user";
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String profilePicture;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String resume;
 

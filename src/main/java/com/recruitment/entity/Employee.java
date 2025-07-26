@@ -23,6 +23,7 @@ public class Employee {
     private String email;
     private String password;
     private String role = "Employer";
+    private Boolean agreedToTerms = false;
     @OneToMany(mappedBy = "postedBy", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Job> postedJobs = new ArrayList<>();
@@ -30,7 +31,7 @@ public class Employee {
     
 	
     public Employee(Long id, String empId, String name, String email, String password, String role,
-			List<Job> postedJobs) {
+			Boolean agreedToTerms, List<Job> postedJobs) {
 		super();
 		this.id = id;
 		this.empId = empId;
@@ -38,6 +39,7 @@ public class Employee {
 		this.email = email;
 		this.password = password;
 		this.role = role;
+		this.agreedToTerms = agreedToTerms;
 		this.postedJobs = postedJobs;
 	}
 
@@ -101,10 +103,11 @@ public class Employee {
 		this.postedJobs = postedJobs;
 	}
 
-	
-	
-	
-    
-    
+	public Boolean getAgreedToTerms() {
+		return agreedToTerms;
+	}
 
+	public void setAgreedToTerms(Boolean agreedToTerms) {
+		this.agreedToTerms = agreedToTerms;
+	}
 }

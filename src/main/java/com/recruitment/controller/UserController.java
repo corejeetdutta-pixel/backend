@@ -7,6 +7,7 @@ import com.recruitment.repository.UserRepo;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -27,6 +28,7 @@ public class UserController {
 
     // Register
     @PostMapping("/register")
+    @Transactional
     public ResponseEntity<?> register(@RequestBody UserDto dto) {
         if (repo.existsByEmail(dto.getEmail())) {
             return ResponseEntity.badRequest().body("Email already registered");
@@ -55,6 +57,7 @@ public class UserController {
 
     // Login
     @PostMapping("/login")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> login(@RequestBody User user, HttpSession session) {
         System.out.println("Login endpoint called");
         System.out.println(user.getEmail()+ " "+ user.getPassword());
@@ -75,6 +78,7 @@ public class UserController {
     
  // Update user profile
     @PutMapping("/update/{id}")
+    @Transactional
     public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody User updatedUser) {
         Optional<User> optionalUser = repo.findById(id);
         if (optionalUser.isEmpty()) {
