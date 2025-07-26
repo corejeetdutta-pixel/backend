@@ -14,23 +14,23 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "employees")
+
 public class Employee {
-	
+
 	@Id @GeneratedValue
-    private Long id;
+	private Long id;
 	private String empId;
-    private String name;
-    private String email;
-    private String password;
-    private String role = "Employer";
-    @OneToMany(mappedBy = "postedBy", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<Job> postedJobs = new ArrayList<>();
-    
-    
-	
-    public Employee(Long id, String empId, String name, String email, String password, String role,
-			List<Job> postedJobs) {
+	private String name;
+	private String email;
+	private String password;
+	private String role = "Employer";
+	private boolean agreedToTerms;
+	@OneToMany(mappedBy = "postedBy", cascade = CascadeType.ALL)
+	@JsonIgnore
+	private List<Job> postedJobs = new ArrayList<>();
+
+	public Employee(Long id, String empId, String name, String email, String password, String role,
+					boolean agreedToTerms, List<Job> postedJobs) {
 		super();
 		this.id = id;
 		this.empId = empId;
@@ -38,12 +38,20 @@ public class Employee {
 		this.email = email;
 		this.password = password;
 		this.role = role;
+		this.agreedToTerms = agreedToTerms;
 		this.postedJobs = postedJobs;
 	}
 
+
 	public Employee() {
-    	
-    }
+	}
+	public boolean isAgreedToTerms() {
+		return agreedToTerms;
+	}
+
+	public void setAgreedToTerms(boolean agreedToTerms) {
+		this.agreedToTerms = agreedToTerms;
+	}
 
 	public Long getId() {
 		return id;
@@ -104,7 +112,7 @@ public class Employee {
 	
 	
 	
-    
-    
+	
+	
 
 }
