@@ -21,7 +21,9 @@ public class CorsConfig implements WebMvcConfigurer {
             .allowedOrigins(
                 "http://localhost:5173",
                 "https://1c.atract.in",
-                "https://www.1c.atract.in"
+                "https://www.1c.atract.in",
+                "https://test1c.atract.in"
+
             )
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
@@ -36,7 +38,8 @@ public class CorsConfig implements WebMvcConfigurer {
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:5173",
             "https://1c.atract.in",
-            "https://www.1c.atract.in"
+            "https://www.1c.atract.in",
+            "https://test1c.atract.in"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
