@@ -1,6 +1,7 @@
 package com.recruitment.entity;
 
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -23,7 +24,7 @@ public class Job {
 
     private String location;
 
-    // ✅ Consistent field name
+    // Consistent field name
     private String highestQualification;
 
     private String minSalary;
@@ -62,7 +63,7 @@ public class Job {
     @Column(columnDefinition = "TEXT")
     private String perks;
 
-    // ✅ Fixed spelling
+    // Fixed spelling
     @Column(columnDefinition = "TEXT")
     private String responsibilities;
 
@@ -70,6 +71,10 @@ public class Job {
     @JoinColumn(name = "employee_id")
     @JsonIgnore
     private Employee postedBy;
+
+    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<Application> applications;
 
     public Job() {
     }
