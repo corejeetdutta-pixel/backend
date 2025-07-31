@@ -9,18 +9,17 @@ import com.recruitment.repository.JobRepository;
 import com.recruitment.repository.UserRepo;
 import com.recruitment.service.ApplicationService;
 import com.recruitment.service.EmailService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/applications")
 public class ApplicationController {
 
-    @Autowired
+    // ... Autowired dependencies …
+@Autowired
     private ApplicationRepository repository;
 
     @Autowired
@@ -35,6 +34,7 @@ public class ApplicationController {
     @Autowired
     private ApplicationService applicationService;
 
+
     @PostMapping("/apply")
     public String applyToJob(@RequestBody ApplicationRequest request) throws Exception {
         System.out.println("apply is triggered");
@@ -47,41 +47,25 @@ public class ApplicationController {
         ObjectMapper mapper = new ObjectMapper();
         String answersJson = mapper.writeValueAsString(request.getAnswers());
 
-        // 1. Get job entity first (required to set in Application)
         var job = jobRepository.findByJobId(request.getJobId())
                 .orElseThrow(() -> new RuntimeException("Job not found"));
 
-        // 2. Save application with new fields
         Application application = new Application();
         application.setJobId(request.getJobId());
         application.setUserId(request.getUserId());
         application.setAnswers(answersJson);
         application.setScore(request.getScore());
         application.setQualified(request.getQualified());
-        application.setStatus("Pending");      // ✅ default status
-        application.setJob(job);               // ✅ set job reference
+        application.setStatus("Pending");
+        application.setJob(job);
         repository.save(application);
-        System.out.println("apply part 1");
 
-        // 3. Get employer email
         String employerEmail = job.getPostedBy().getEmail();
-        System.out.println("apply part 2");
-
-        // 4. Get full user details
         var userEntity = userRepository.findByUserId(request.getUserId()).orElseThrow();
-        var userDto = new UserDto();
-        userDto.setName(userEntity.getName());
-        userDto.setEmail(userEntity.getEmail());
-        userDto.setMobile(userEntity.getMobile());
-        userDto.setAddress(userEntity.getAddress());
-        userDto.setGender(userEntity.getGender());
-        userDto.setQualification(userEntity.getQualification());
-        userDto.setPassoutYear(userEntity.getPassoutYear());
-        userDto.setSkills(userEntity.getSkills());
-        userDto.setResume(userEntity.getResume());
-        System.out.println("apply part 3");
+        
+        // Use existing UserDto conversion logic
+        UserDto userDto = convertToUserDto(userEntity);
 
-        // 5. Send email to employer
         try {
             emailService.sendApplicationEmail(
                     employerEmail,
@@ -92,17 +76,32 @@ public class ApplicationController {
                     answersJson,
                     request.getScore()
             );
-            System.out.println("mail is triggered");
+            System.out.println("Email sent successfully");
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("exception part");
             return "✅ Application saved, but failed to email employer.";
         }
 
         return "✅ Application submitted successfully.";
     }
-    
-    @GetMapping("/employer/{empId}")
+
+    private UserDto convertToUserDto(UserEntity userEntity) {
+        UserDto userDto = new UserDto();
+        userDto.setName(userEntity.getName());
+        userDto.setEmail(userEntity.getEmail());
+        userDto.setMobile(userEntity.getMobile());
+        userDto.setAddress(userEntity.getAddress());
+        userDto.setGender(userEntity.getGender());
+        userDto.setQualification(userEntity.getQualification());
+        userDto.setPassoutYear(userEntity.getPassoutYear());
+        userDto.setSkills(userEntity.getSkills());
+        userDto.setResume(userEntity.getResume());
+        return userDto;
+    }
+
+    // ... other controller methods …
+
+ @GetMapping("/employer/{empId}")
     public ResponseEntity<List<Application>> getEmployerApplications(@PathVariable String empId) {
         List<Application> apps = applicationService.getApplicationsByEmployer(empId);
         return ResponseEntity.ok(apps);
