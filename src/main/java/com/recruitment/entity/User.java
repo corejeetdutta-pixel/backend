@@ -5,7 +5,6 @@ import java.io.Serializable;
 import java.util.*;
 
 @Entity
-@Table(name = "users")
 public class User implements Serializable {
 
     private static final long serialVersionUID = 2L;
@@ -30,10 +29,10 @@ public class User implements Serializable {
 
     private String role = "user";
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "LONGTEXT")
     private String profilePicture;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "LONGTEXT")
     private String resume;
 
     public User() {

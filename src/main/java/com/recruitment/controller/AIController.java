@@ -28,18 +28,18 @@ public class AIController {
 	    private final String apiKey;
 
 	    public AIController(
-	        RestTemplate restTemplate,
-	        ObjectMapper objectMapper,
-	        EvaluationService evaluationService,
-	        @Value("${together.api.key}") String apiKey,
-	        @Value("${spring.ai.openai.base-url}") String apiUrl
-	    ) {
-	        this.restTemplate = restTemplate;
-	        this.objectMapper = objectMapper;
-	        this.evaluationService = evaluationService;
-	        this.apiKey = apiKey;
-	        this.apiUrl = apiUrl;
-	    }
+	    	    RestTemplate restTemplate,
+	    	    ObjectMapper objectMapper,
+	    	    EvaluationService evaluationService,
+	    	    @Value("${together.api.key}") String apiKey,
+	    	    @Value("${spring.ai.openai.base-url}") String apiUrl
+	    	) {
+	    	    this.restTemplate = restTemplate;
+	    	    this.objectMapper = objectMapper;
+	    	    this.evaluationService = evaluationService;
+	    	    this.apiKey = apiKey;
+	    	    this.apiUrl = apiUrl.trim();  // 🔒 safe against accidental spaces
+	    	}
 
 	    private String callTogetherAI(String userPrompt) {
 	        try {

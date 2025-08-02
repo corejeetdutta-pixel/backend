@@ -41,6 +41,7 @@ public class ApplicationController {
 
         boolean alreadyApplied = repository.existsByUserIdAndJobId(request.getUserId(), request.getJobId());
         if (alreadyApplied) {
+        	System.out.println("isApplied triggered");
             return "⚠️ You have already applied to this job.";
         }
 

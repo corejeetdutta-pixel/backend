@@ -22,6 +22,7 @@ public class Employee implements Serializable {
 	@Id @GeneratedValue
     private Long id;
 	private String empId;
+	private boolean verified = false;
     private String name;
     private String email;
     private String password;
@@ -33,11 +34,14 @@ public class Employee implements Serializable {
     
     
 	
-    public Employee(Long id, String empId, String name, String email, String password, String role,
+    
+
+	public Employee(Long id, String empId, boolean verified, String name, String email, String password, String role,
 			Boolean agreedToTerms, List<Job> postedJobs) {
 		super();
 		this.id = id;
 		this.empId = empId;
+		this.verified = verified;
 		this.name = name;
 		this.email = email;
 		this.password = password;
@@ -113,4 +117,18 @@ public class Employee implements Serializable {
 	public void setAgreedToTerms(Boolean agreedToTerms) {
 		this.agreedToTerms = agreedToTerms;
 	}
+
+	public boolean isVerified() {
+		return verified;
+	}
+
+	public void setVerified(boolean verified) {
+		this.verified = verified;
+	}
+
+	public static long getSerialversionuid() {
+		return serialVersionUID;
+	}
+	
+	
 }

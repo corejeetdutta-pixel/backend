@@ -1,17 +1,22 @@
 package com.recruitment.controller;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.recruitment.entity.Employee;
+import com.recruitment.entity.VerificationToken;
 import com.recruitment.repository.EmployeeRepo;
+import com.recruitment.repository.VerificationTokenRepository;
+import com.recruitment.service.EmailService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -21,6 +26,10 @@ public class EmployeeController {
 
     @Autowired
     private EmployeeRepo repo;
+    @Autowired
+    private EmailService emailService;
+    @Autowired
+    private VerificationTokenRepository tokenRepo;
 
     // ✅ Password regex: min 8 chars, 1 upper, 1 lower, 1 digit, 1 special char
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(
@@ -35,22 +44,54 @@ public class EmployeeController {
         }
 
         if (!PASSWORD_PATTERN.matcher(emp.getPassword()).matches()) {
-            return ResponseEntity.badRequest().body(
-                "Password must be at least 8 characters long and include " +
-                "an uppercase letter, a lowercase letter, a digit, and a special character."
-            );
+            return ResponseEntity.badRequest().body("Weak password");
         }
 
-        // Set default value for agreedToTerms if not provided
-        if (emp.getAgreedToTerms() == null) {
-            emp.setAgreedToTerms(true); // Default to true for registration
-        }
+        emp.setAgreedToTerms(true);
+        emp.setRole("Employer");
 
         repo.save(emp);
-        return ResponseEntity.ok("Employee registered successfully");
+
+        // Generate token and send email
+        String token = UUID.randomUUID().toString();
+        VerificationToken verificationToken = new VerificationToken();
+        verificationToken.setToken(token);
+        verificationToken.setEmployee(emp);
+        verificationToken.setExpiryDate(LocalDateTime.now().plusHours(24));
+        tokenRepo.save(verificationToken);
+
+        String link = "http://localhost:8080/auth/employee/verify?token=" + token;
+        emailService.sendSimpleMessage(emp.getEmail(), "Email Verification", "Click to verify: " + link);
+
+        return ResponseEntity.ok("Check your email to verify your account.");
+    }
+    
+ // Updated verifyEmail endpoint in EmployeeController.java
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        Optional<VerificationToken> opt = tokenRepo.findByToken(token);
+        if (opt.isEmpty()) return ResponseEntity.badRequest().body("Invalid token");
+
+        VerificationToken vt = opt.get();
+        if (vt.getExpiryDate().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("Token expired");
+        }
+
+        // Get the employee and mark as verified
+        Employee employee = vt.getEmployee();
+        employee.setVerified(true); // THIS WAS MISSING
+        
+        // Save updated employee status
+        repo.save(employee);
+        
+        // Update token status
+        vt.setVerified(true);
+        tokenRepo.save(vt);
+
+        return ResponseEntity.ok("Email verified successfully. You can now login.");
     }
 
-    // ✅ Login employee and set session
+ // EmployeeController.java - Updated login verification
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Employee emp, HttpSession session) {
         System.out.println("Login is triggered");
@@ -61,6 +102,12 @@ public class EmployeeController {
         }
 
         Employee existingEmp = optionalUser.get();
+        
+        // Check if email is verified
+        if (!existingEmp.isVerified()) {
+            return ResponseEntity.status(401).body("Email not verified. Please check your email.");
+        }
+        
         if (!existingEmp.getPassword().equals(emp.getPassword())) {
             return ResponseEntity.status(401).body("Invalid password");
         }
@@ -68,16 +115,20 @@ public class EmployeeController {
         // Set session timeout to 30 minutes
         session.setMaxInactiveInterval(30 * 60);
         session.setAttribute("emp", existingEmp); // Set session key
-        
+
+        // Send login email
+        emailService.sendLoginNotification(existingEmp.getEmail(), existingEmp.getName());
+
         // Create response with CORS headers
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Login successful");
         response.put("user", existingEmp);
         response.put("Access-Control-Allow-Credentials", "true");
         response.put("Access-Control-Expose-Headers", "Set-Cookie");
-        
+
         return ResponseEntity.ok(response);    // Return response with CORS headers
     }
+
 
     // ✅ Get current logged-in employee
     @GetMapping("/current-employee")
