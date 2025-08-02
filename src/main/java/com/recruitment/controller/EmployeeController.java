@@ -27,12 +27,13 @@ public class EmployeeController {
 
     @Autowired
     private EmployeeRepo repo;
+
     @Autowired
     private EmailService emailService;
+
     @Autowired
     private VerificationTokenRepository tokenRepo;
 
-    // ✅ Password regex: min 8 chars, 1 upper, 1 lower, 1 digit, 1 special char
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(
         "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
     );
@@ -45,15 +46,15 @@ public class EmployeeController {
         }
 
         if (!PASSWORD_PATTERN.matcher(emp.getPassword()).matches()) {
-            return ResponseEntity.badRequest().body("Weak password");
+            return ResponseEntity.badRequest().body("Password must be at least 8 characters long and include uppercase, lowercase, digit, and special character.");
         }
 
         emp.setAgreedToTerms(true);
         emp.setRole("Employer");
-
+        emp.setVerified(false);
         repo.save(emp);
 
-        // Generate token and send email
+        // ✅ Create and save verification token
         String token = UUID.randomUUID().toString();
         VerificationToken verificationToken = new VerificationToken();
         verificationToken.setToken(token);
@@ -61,80 +62,74 @@ public class EmployeeController {
         verificationToken.setExpiryDate(LocalDateTime.now().plusHours(24));
         tokenRepo.save(verificationToken);
 
+        // ✅ Send verification email
         String link = "https://recruitment-backend-beta-test.onrender.com/auth/employee/verify?token=" + token;
-        emailService.sendSimpleMessage(emp.getEmail(), "Email Verification", "Click to verify: " + link);
+        emailService.sendSimpleMessage(emp.getEmail(), "Email Verification", "Please verify your email by clicking the link: " + link);
 
-        return ResponseEntity.ok("Check your email to verify your account.");
+        return ResponseEntity.ok("Registration successful. Please check your email to verify your account.");
     }
-    
- // Updated verifyEmail endpoint in EmployeeController.java
+
+    // ✅ Verify Email
     @GetMapping("/verify")
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
         Optional<VerificationToken> opt = tokenRepo.findByToken(token);
-        if (opt.isEmpty()) return ResponseEntity.badRequest().body("Invalid token");
+        if (opt.isEmpty()) {
+            return ResponseEntity.badRequest().body("Invalid verification token.");
+        }
 
         VerificationToken vt = opt.get();
         if (vt.getExpiryDate().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body("Token expired");
+            return ResponseEntity.badRequest().body("Verification token has expired.");
         }
 
-        // Get the employee and mark as verified
         Employee employee = vt.getEmployee();
-        employee.setVerified(true); // THIS WAS MISSING
-        
-        // Save updated employee status
+        if (employee.isVerified()) {
+            return ResponseEntity.ok("Email already verified.");
+        }
+
+        employee.setVerified(true);
         repo.save(employee);
-        
-        // Update token status
+
         vt.setVerified(true);
         tokenRepo.save(vt);
 
         return ResponseEntity.ok("Email verified successfully. You can now login.");
     }
 
- // EmployeeController.java - Updated login verification
+    // ✅ Login
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Employee emp, HttpSession session) {
-        System.out.println("Login is triggered");
-
         Optional<Employee> optionalUser = repo.findByEmail(emp.getEmail());
         if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(401).body("Employee not found");
+            return ResponseEntity.status(401).body("Employee not found.");
         }
-        System.out.println("Login is triggered login check");
 
         Employee existingEmp = optionalUser.get();
-        
-        // Check if email is verified
+
         if (!existingEmp.isVerified()) {
-        	System.out.println("Login is triggered and verified");
-            return ResponseEntity.status(401).body("Email not verified. Please check your email.");
+            return ResponseEntity.status(401).body("Email not verified. Please check your inbox.");
         }
-        
+
         if (!existingEmp.getPassword().equals(emp.getPassword())) {
-            return ResponseEntity.status(401).body("Invalid password");
+            return ResponseEntity.status(401).body("Invalid password.");
         }
 
-        // Set session timeout to 30 minutes
-        session.setMaxInactiveInterval(30 * 60);
-        session.setAttribute("emp", existingEmp); // Set session key
-        System.out.println("Login is triggered and session check");
+        // ✅ Session setup
+        session.setMaxInactiveInterval(30 * 60); // 30 minutes
+        session.setAttribute("emp", existingEmp);
 
-        // Send login email
+        // ✅ Send login email
         emailService.sendLoginNotification(existingEmp.getEmail(), existingEmp.getName());
-        System.out.println("Login is triggered and notification sended");
 
-        // Create response with CORS headers
+        // ✅ Return response
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Login successful");
-        response.put("emp", existingEmp);
+        response.put("user", existingEmp);
         response.put("Access-Control-Allow-Credentials", "true");
         response.put("Access-Control-Expose-Headers", "Set-Cookie");
-        System.out.println("Login is triggered and completes");
 
-        return ResponseEntity.ok(response);    // Return response with CORS headers
+        return ResponseEntity.ok(response);
     }
-
 
     // ✅ Get current logged-in employee
     @GetMapping("/current-employee")
@@ -143,7 +138,6 @@ public class EmployeeController {
         if (emp == null) {
             return ResponseEntity.status(401).body("Not logged in");
         }
-        System.out.println("EmpId : " + emp.getEmpId());
         return ResponseEntity.ok(emp);
     }
 
