@@ -10,9 +10,9 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
             .allowedOrigins(
-                "http://localhost:5173",
                 "https://1c.atract.in",
                 "https://www.1c.atract.in",
+                "http://localhost:5173",
                 "https://test1c.atract.in"
 
             )
