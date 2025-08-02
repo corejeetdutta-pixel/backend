@@ -21,7 +21,7 @@ import com.recruitment.service.EmailService;
 import jakarta.servlet.http.HttpSession;
 
 @RestController
-@CrossOrigin(origins = "https://1c.atract.in/", allowCredentials = "true")
+@CrossOrigin(origins = "https://1c.atract.in", allowCredentials = "true")
 @RequestMapping("/auth/employee")
 public class EmployeeController {
 
