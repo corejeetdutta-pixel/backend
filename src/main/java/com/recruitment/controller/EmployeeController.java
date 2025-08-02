@@ -127,7 +127,7 @@ public class EmployeeController {
         // Create response with CORS headers
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Login successful");
-        response.put("user", existingEmp);
+        response.put("emp", existingEmp);
         response.put("Access-Control-Allow-Credentials", "true");
         response.put("Access-Control-Expose-Headers", "Set-Cookie");
         System.out.println("Login is triggered and completes");
