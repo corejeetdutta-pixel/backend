@@ -101,11 +101,13 @@ public class EmployeeController {
         if (optionalUser.isEmpty()) {
             return ResponseEntity.status(401).body("Employee not found");
         }
+        System.out.println("Login is triggered login check");
 
         Employee existingEmp = optionalUser.get();
         
         // Check if email is verified
         if (!existingEmp.isVerified()) {
+        	System.out.println("Login is triggered and verified");
             return ResponseEntity.status(401).body("Email not verified. Please check your email.");
         }
         
@@ -116,9 +118,11 @@ public class EmployeeController {
         // Set session timeout to 30 minutes
         session.setMaxInactiveInterval(30 * 60);
         session.setAttribute("emp", existingEmp); // Set session key
+        System.out.println("Login is triggered and session check");
 
         // Send login email
         emailService.sendLoginNotification(existingEmp.getEmail(), existingEmp.getName());
+        System.out.println("Login is triggered and notification sended");
 
         // Create response with CORS headers
         Map<String, Object> response = new HashMap<>();
@@ -126,6 +130,7 @@ public class EmployeeController {
         response.put("user", existingEmp);
         response.put("Access-Control-Allow-Credentials", "true");
         response.put("Access-Control-Expose-Headers", "Set-Cookie");
+        System.out.println("Login is triggered and completes");
 
         return ResponseEntity.ok(response);    // Return response with CORS headers
     }
