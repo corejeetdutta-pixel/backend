@@ -60,7 +60,7 @@ public class EmployeeController {
         verificationToken.setExpiryDate(LocalDateTime.now().plusHours(24));
         tokenRepo.save(verificationToken);
 
-        String link = "http://localhost:8080/auth/employee/verify?token=" + token;
+        String link = "https://recruitment-backend-s4la.onrender.com/auth/employee/verify?token=" + token;
         emailService.sendSimpleMessage(emp.getEmail(), "Email Verification", "Click to verify: " + link);
 
         return ResponseEntity.ok("Check your email to verify your account.");
