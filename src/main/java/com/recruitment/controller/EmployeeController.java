@@ -93,7 +93,7 @@ public class EmployeeController {
         return ResponseEntity.ok("Email verified successfully. You can now login.");
     }
 
- // EmployeeController.java - Updated login verification
+    // FIXED: Store only employee ID in session
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Employee emp, HttpSession session) {
         System.out.println("Login is triggered");
@@ -108,20 +108,28 @@ public class EmployeeController {
             return ResponseEntity.status(401).body("Invalid password");
         }
 
-        session.setAttribute("emp", existingEmp); // Set session key
-        return ResponseEntity.ok(existingEmp);    // Return employee object
+        // Store only employee ID in session
+        session.setAttribute("empId", existingEmp.getEmpId());
+        return ResponseEntity.ok(existingEmp);
     }
 
-
-    // ✅ Get current logged-in employee
+    // FIXED: Fetch employee by ID from database
     @GetMapping("/current-employee")
     public ResponseEntity<?> currentUser(HttpSession session) {
-        Employee emp = (Employee) session.getAttribute("emp");
-        System.out.println("emp = "+emp);
-        if (emp == null) {
+        String empId = (String) session.getAttribute("empId");
+        System.out.println("empId = " + empId);
+        
+        if (empId == null) {
             return ResponseEntity.status(401).body("Not logged in");
         }
-        System.out.println("EmpId : " + emp.getEmpId());
+        
+        Optional<Employee> optionalEmp = repo.findByEmpId(empId);
+        if (optionalEmp.isEmpty()) {
+            return ResponseEntity.status(404).body("Employee not found");
+        }
+        
+        Employee emp = optionalEmp.get();
+        System.out.println("Fetched employee: " + emp.getEmail());
         return ResponseEntity.ok(emp);
     }
 
