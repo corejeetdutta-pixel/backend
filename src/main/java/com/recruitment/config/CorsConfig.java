@@ -15,7 +15,8 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
             .allowedOrigins(
                 "http://localhost:5173",
-                "https://rec-2025-core.web.app"
+                "https://rec-2025-core.web.app",
+                "https://1c.atract.in"
 
             )
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
