@@ -69,7 +69,7 @@ public class EmailService {
             // Use environment variable for frontend URL or a config property
             String frontendUrl = System.getenv("FRONTEND_URL");
             if (frontendUrl == null || frontendUrl.isEmpty()) {
-                frontendUrl = "http://localhost:8080"; // default for development
+                frontendUrl = "https://backend-n4w7.onrender.com"; // default for development
             }
             
             String verificationUrl = frontendUrl + "auth/user/verify-email?token=" + token;
