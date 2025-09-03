@@ -17,7 +17,7 @@
 //
 //@RestController
 //@RequestMapping("/api/bookmarks")
-//@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+//@CrossOrigin(origins = "http://backend-n4w7.onrender.com", allowCredentials = "true")
 //public class BookmarkController {
 //
 //    @Autowired

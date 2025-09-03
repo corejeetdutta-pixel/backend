@@ -68,7 +68,7 @@ public class UserController {
         
         // Send verification email
         try {
-        	String link = "http://localhost:8080/auth/user/verify-email?token=" + verificationToken;
+        	String link = "http://backend-n4w7.onrender.com/auth/user/verify-email?token=" + verificationToken;
             emailService.sendVerificationEmail(user.getEmail(), user.getName(), link);
         } catch (Exception e) {
             System.err.println("Failed to send verification email: " + e.getMessage());
