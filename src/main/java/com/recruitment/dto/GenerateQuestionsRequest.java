@@ -5,6 +5,16 @@ public class GenerateQuestionsRequest {
     private String description;
     private String requirements;
     private String experienceLevel;
+    private int count;
+    
+    
+    public int getCount() {
+        return count;
+    }
+    
+    public void setCount(int count) {
+        this.count = count;
+    }
     
     
     public String getDescription() {

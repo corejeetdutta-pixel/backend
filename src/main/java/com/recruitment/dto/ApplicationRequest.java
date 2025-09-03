@@ -6,6 +6,7 @@ public class ApplicationRequest {
     private String jobId;
     private String userId;
     private Map<String, String> answers;
+    private Map<String, String> questions;
     private Integer score;
     private Boolean qualified;
 
@@ -49,4 +50,14 @@ public class ApplicationRequest {
     public void setQualified(Boolean qualified) {
         this.qualified = qualified;
     }
+
+	public Map<String, String> getQuestions() {
+		return questions;
+	}
+
+	public void setQuestions(Map<String, String> questions) {
+		this.questions = questions;
+	}
+    
+    
 }

@@ -47,20 +47,25 @@ public class ApplicationController {
 
         ObjectMapper mapper = new ObjectMapper();
         String answersJson = mapper.writeValueAsString(request.getAnswers());
+        String questionsJson = mapper.writeValueAsString(request.getQuestions());
 
         // 1. Get job entity first (required to set in Application)
         var job = jobRepository.findByJobId(request.getJobId())
                 .orElseThrow(() -> new RuntimeException("Job not found"));
+        var user = userRepository.findByUserId(request.getUserId())
+        		.orElseThrow(() -> new RuntimeException("User not found"));
 
         // 2. Save application with new fields
         Application application = new Application();
         application.setJobId(request.getJobId());
         application.setUserId(request.getUserId());
         application.setAnswers(answersJson);
+        application.setQuestions(questionsJson);
         application.setScore(request.getScore());
         application.setQualified(request.getQualified());
         application.setStatus("Pending");      // ✅ default status
         application.setJob(job);               // ✅ set job reference
+        application.setUser(user);
         repository.save(application);
         System.out.println("apply part 1");
 

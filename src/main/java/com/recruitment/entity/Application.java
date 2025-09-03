@@ -1,5 +1,7 @@
 package com.recruitment.entity;
 
+import java.time.LocalDate;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
@@ -21,12 +23,22 @@ public class Application {
 
     private Integer score;
     private Boolean qualified;
+    
+//    @Column(name = "application_date")
+//    private LocalDate applicationDate;
+    
+    @Column(name = "application_date")
+    private LocalDate appliedAt;
 
     private String status; // ✅ Add this line
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_ref_id")
     private Job job;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_applied")
+    private User user;
     
 //    @ManyToOne(fetch = FetchType.LAZY)
 //    @JoinColumn(name = "job_posted_by")
@@ -103,6 +115,32 @@ public class Application {
 	public void setJob(Job job) {
 		this.job = job;
 	}
+
+	public User getUser() {
+		return user;
+	}
+
+	public void setUser(User user) {
+		this.user = user;
+	}
+
+//	public LocalDate getApplicationDate() {
+//		return applicationDate;
+//	}
+//
+//	public void setApplicationDate(LocalDate applicationDate) {
+//		this.applicationDate = applicationDate;
+//	}
+	
+	public LocalDate getAppliedAt() {  // Rename from getApplicationDate
+	    return appliedAt;
+	}
+
+	public void setAppliedAt(LocalDate appliedAt) {
+	    this.appliedAt = appliedAt;
+	}
+	
+	
 
     // Getters and setters...
     

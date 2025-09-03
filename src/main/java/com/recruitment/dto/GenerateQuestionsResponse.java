@@ -2,6 +2,8 @@ package com.recruitment.dto;
 
 import java.util.List;
 
+
+
 public class GenerateQuestionsResponse {
     private List<MultipleChoiceQuestion> questions;
 

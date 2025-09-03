@@ -7,7 +7,6 @@ import com.recruitment.dto.EvaluationResponse;
 import com.recruitment.dto.GenerateQuestionsRequest;
 import com.recruitment.dto.GenerateQuestionsResponse;
 import com.recruitment.service.EvaluationService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -18,51 +17,58 @@ import java.util.*;
 @RestController
 @RequestMapping("/ai/jd")
 public class AIController {
-		@Autowired
-		private final RestTemplate restTemplate;
-	 	@Autowired
-	    private final ObjectMapper objectMapper;
-	    @Autowired
-	    private final EvaluationService evaluationService;
-	    private final String apiUrl;
-	    private final String apiKey;
 
-	    public AIController(
-	    	    RestTemplate restTemplate,
-	    	    ObjectMapper objectMapper,
-	    	    EvaluationService evaluationService,
-	    	    @Value("${together.api.key}") String apiKey,
-	    	    @Value("${spring.ai.openai.base-url}") String apiUrl
-	    	) {
-	    	    this.restTemplate = restTemplate;
-	    	    this.objectMapper = objectMapper;
-	    	    this.evaluationService = evaluationService;
-	    	    this.apiKey = apiKey;
-	    	    this.apiUrl = apiUrl.trim();  // 🔒 safe against accidental spaces
-	    	}
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final EvaluationService evaluationService;
+    private final String apiUrl;
+    private final String apiKey;
 
-	    private String callTogetherAI(String userPrompt) {
-	        try {
-	            Map<String, Object> request = new HashMap<>();
-	            request.put("model", "meta-llama/Llama-3-70b-chat-hf");
-	            request.put("max_tokens", 1024);
-	            request.put("messages", List.of(Map.of("role", "user", "content", userPrompt)));
+    public AIController(
+            RestTemplate restTemplate,
+            ObjectMapper objectMapper,
+            EvaluationService evaluationService,
+            @Value("${together.api.key}") String apiKey,
+            @Value("${spring.ai.openai.base-url}") String apiUrl
+    ) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+        this.evaluationService = evaluationService;
+        this.apiKey = apiKey;
+        this.apiUrl = apiUrl.trim();
+    }
 
-	            HttpHeaders headers = new HttpHeaders();
-	            headers.setContentType(MediaType.APPLICATION_JSON);
-	            headers.setBearerAuth(apiKey);
+    // ===== Helper Method to call Together API =====
+    private String callTogetherAI(String userPrompt) {
+        try {
+            Map<String, Object> request = new HashMap<>();
+            request.put("model", "meta-llama/Llama-3-70b-chat-hf");
+            request.put("max_tokens", 2048);
+            request.put("temperature", 0.7);
+            request.put("messages", List.of(Map.of("role", "user", "content", userPrompt)));
 
-	            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
-	            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
 
-	            JsonNode root = objectMapper.readTree(response.getBody());
-	            return root.path("choices").get(0).path("message").path("content").asText();
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	            return "Error calling Together.ai";
-	        }
-	    }
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
 
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                JsonNode root = objectMapper.readTree(response.getBody());
+                JsonNode choices = root.path("choices");
+                if (choices.isArray() && choices.size() > 0) {
+                    return choices.get(0).path("message").path("content").asText();
+                }
+            }
+            return "Error: Failed to get valid response from AI";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error calling Together.ai: " + e.getMessage();
+        }
+    }
+
+    // ===== JD Generator =====
     @PostMapping("/generate")
     public ResponseEntity<String> generateJD(@RequestBody Map<String, String> jobDetails) {
         System.out.println("JD generation triggered");
@@ -113,42 +119,110 @@ public class AIController {
         return ResponseEntity.ok(response);
     }
 
+    // ===== Question Generator =====
     @PostMapping("/generate-questions")
     public GenerateQuestionsResponse generateQuestions(@RequestBody GenerateQuestionsRequest request) {
-        System.out.println("question generation triggered");
+        System.out.println("Question generation triggered with experience level: " + request.getExperienceLevel());
+
+        int questionCount = request.getCount() > 0 ? request.getCount() : 5;
+        String difficultyLevel = determineDifficultyLevel(request.getExperienceLevel());
 
         String prompt = String.format("""
-            You are a professional interviewer.
-            For the job title "%s", generate exactly 5 multiple-choice questions.
-            Each question must have:
-            - question: the question text
-            - options: an array of 4 options (short, clear)
-            - correctOption: the index (0-3) of the correct option
+            You are a professional technical interviewer generating unique questions for %s position.
 
-            Return a JSON array like:
-            [
-              {"question":"...","options":["...","...","...","..."],"correctOption":1},
-              {"question":"...","options":["...","...","...","..."],"correctOption":0},
-              ...
-            ]
-            Only return the JSON array, no explanations.
-        """, request.getTitle());
+            JOB CONTEXT:
+            - Title: %s
+            - Description: %s
+            - Requirements: %s
+            - Experience Level: %s (%s)
+
+            CRITICAL INSTRUCTIONS:
+            1. Generate EXACTLY %d UNIQUE multiple-choice questions
+            2. Difficulty Level: %s
+            3. Each question must have:
+               - question
+               - options: exactly 4
+               - correctOption (0-3)
+            4. Format: JSON array only
+            """,
+                request.getTitle(),
+                request.getTitle(),
+                request.getDescription() != null ? request.getDescription() : "",
+                request.getRequirements() != null ? request.getRequirements() : "",
+                request.getExperienceLevel() != null ? request.getExperienceLevel() : "Not specified",
+                difficultyLevel,
+                questionCount,
+                difficultyLevel
+        );
 
         String rawResponse = callTogetherAI(prompt);
+        String jsonResponse = extractJsonFromResponse(rawResponse);
 
         try {
             List<GenerateQuestionsResponse.MultipleChoiceQuestion> questions =
-                objectMapper.readValue(
-                    rawResponse,
-                    objectMapper.getTypeFactory().constructCollectionType(List.class, GenerateQuestionsResponse.MultipleChoiceQuestion.class)
-                );
+                    objectMapper.readValue(
+                            jsonResponse,
+                            objectMapper.getTypeFactory().constructCollectionType(List.class,
+                                    GenerateQuestionsResponse.MultipleChoiceQuestion.class)
+                    );
+
+            if (questions.size() > questionCount) {
+                questions = questions.subList(0, questionCount);
+            }
+
             return new GenerateQuestionsResponse(questions);
         } catch (Exception e) {
             e.printStackTrace();
-            return new GenerateQuestionsResponse(List.of());
+            return generateFallbackQuestions(request.getTitle(), difficultyLevel);
         }
     }
 
+    private String determineDifficultyLevel(String experience) {
+        if (experience == null || experience.trim().isEmpty()) {
+            return "intermediate";
+        }
+        try {
+            String cleanExp = experience.replaceAll("[^0-9\\-+]", "").trim();
+            if (cleanExp.contains("+")) {
+                int minExp = Integer.parseInt(cleanExp.replace("+", ""));
+                return getDifficultyForExperience(minExp);
+            } else if (cleanExp.contains("-")) {
+                int minExp = Integer.parseInt(cleanExp.split("-")[0].trim());
+                return getDifficultyForExperience(minExp);
+            } else {
+                int exp = Integer.parseInt(cleanExp);
+                return getDifficultyForExperience(exp);
+            }
+        } catch (Exception e) {
+            return "intermediate";
+        }
+    }
+
+    private String getDifficultyForExperience(int years) {
+        if (years <= 2) return "basic";
+        else if (years <= 4) return "intermediate";
+        else if (years <= 6) return "moderately complex";
+        else if (years <= 10) return "complex";
+        else if (years <= 15) return "highly complex";
+        else if (years <= 20) return "expert-level";
+        else return "expert-plus-level";
+    }
+
+    private String extractJsonFromResponse(String rawResponse) {
+        int startIndex = rawResponse.indexOf('[');
+        int endIndex = rawResponse.lastIndexOf(']');
+        if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+            return rawResponse.substring(startIndex, endIndex + 1);
+        }
+        return rawResponse;
+    }
+
+    private GenerateQuestionsResponse generateFallbackQuestions(String title, String difficulty) {
+        List<GenerateQuestionsResponse.MultipleChoiceQuestion> questions = new ArrayList<>();
+        return new GenerateQuestionsResponse(questions);
+    }
+
+    // ===== Answer Evaluation =====
     @PostMapping("/evaluate")
     public EvaluationResponse evaluate(@RequestBody EvaluationRequest request) {
         System.out.println("evaluation triggered");
@@ -157,19 +231,17 @@ public class AIController {
         List<String> answers = request.getAnswers();
 
         int totalScore = 0;
-
         for (int i = 0; i < questions.size(); i++) {
             String q = questions.get(i);
             String a = answers.size() > i ? answers.get(i) : "";
-
             boolean relevant = evaluationService.isAnswerRelevant(q, a);
             if (relevant) totalScore += 10;
         }
-
         boolean qualified = totalScore >= 70;
         return new EvaluationResponse(totalScore, qualified);
     }
 
+    // ===== Resume Enhancement =====
     @PostMapping("/cv/enhance")
     public ResponseEntity<?> enhanceResume(@RequestBody Map<String, String> request) {
         System.out.println("resume enhancement triggered");
@@ -179,14 +251,12 @@ public class AIController {
         String company = request.getOrDefault("company", "");
         String jobDescription = request.getOrDefault("jobDescription", "");
 
-        // Limit lengths to avoid token overflow (you may tweak these numbers as needed)
-        resumeText = trimToLength(resumeText, 3000); // ~3000 characters
-        jobDescription = trimToLength(jobDescription, 2000); // ~2000 characters
+        resumeText = trimToLength(resumeText, 3000);
+        jobDescription = trimToLength(jobDescription, 2000);
 
         String prompt = String.format("""
             You are a professional CV writer.
-            Given this resume and the job details, rewrite the resume to better match the job description.
-            Make it clear, professional, and relevant.
+            Rewrite this resume to match the job description.
 
             Resume:
             %s
@@ -195,7 +265,7 @@ public class AIController {
             Company: %s
             Job Description: %s
 
-            Return ONLY the enhanced resume text, no extra explanation.
+            Return ONLY the enhanced resume.
         """, resumeText, jobTitle, company, jobDescription);
 
         String enhancedCv = callTogetherAI(prompt);
@@ -205,5 +275,4 @@ public class AIController {
     private String trimToLength(String text, int maxChars) {
         return text != null && text.length() > maxChars ? text.substring(0, maxChars) : text;
     }
-
 }

@@ -8,9 +8,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.Query;
-import java.util.Arrays;
-import java.util.List;
 
 @Service
 public class DatabaseCleanupService implements CommandLineRunner {

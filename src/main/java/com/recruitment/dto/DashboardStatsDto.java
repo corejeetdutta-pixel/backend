@@ -3,18 +3,15 @@ package com.recruitment.dto;
 public class DashboardStatsDto {
     private long jobsPosted;
     private long applications;
-    private long hired;
-    private long interviews;
-
-    // Getters and setters
+    private long hired = 0;  // Default to 0
+    private long interviews = 0;  // Default to 0
 
     public DashboardStatsDto() {}
 
-    public DashboardStatsDto(long jobsPosted, long applications, long hired, long interviews) {
+    public DashboardStatsDto(long jobsPosted, long applications) {
         this.jobsPosted = jobsPosted;
         this.applications = applications;
-        this.hired = hired;
-        this.interviews = interviews;
+        // hired and interviews will remain 0
     }
 
     public long getJobsPosted() {

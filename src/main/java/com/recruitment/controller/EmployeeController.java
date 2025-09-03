@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +21,6 @@ import com.recruitment.service.EmailService;
 import jakarta.servlet.http.HttpSession;
 
 @RestController
-@CrossOrigin(origins = "https://1c.atract.in", allowCredentials = "true")
 @RequestMapping("/auth/employee")
 public class EmployeeController {
 
@@ -62,7 +60,7 @@ public class EmployeeController {
         verificationToken.setExpiryDate(LocalDateTime.now().plusHours(24));
         tokenRepo.save(verificationToken);
 
-        String link = "https://recruitment-backend-beta-test.onrender.com/auth/employee/verify?token=" + token;
+        String link = "http://localhost:8080/auth/employee/verify?token=" + token;
         emailService.sendSimpleMessage(emp.getEmail(), "Email Verification", "Click to verify: " + link);
 
         return ResponseEntity.ok("Check your email to verify your account.");
@@ -93,7 +91,7 @@ public class EmployeeController {
         return ResponseEntity.ok("Email verified successfully. You can now login.");
     }
 
-    // FIXED: Store only employee ID in session
+ // EmployeeController.java - Updated login verification
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Employee emp, HttpSession session) {
         System.out.println("Login is triggered");
@@ -104,32 +102,44 @@ public class EmployeeController {
         }
 
         Employee existingEmp = optionalUser.get();
+        
+        // Check if email is verified
+        if (!existingEmp.isVerified()) {
+            return ResponseEntity.status(401).body("Email not verified. Please check your email.");
+        }
+        
         if (!existingEmp.getPassword().equals(emp.getPassword())) {
             return ResponseEntity.status(401).body("Invalid password");
         }
 
-        // Store only employee ID in session
-        session.setAttribute("empId", existingEmp.getEmpId());
-        return ResponseEntity.ok(existingEmp);
+        // Set session timeout to 30 minutes
+        session.setMaxInactiveInterval(30 * 60);
+        session.setAttribute("emp", existingEmp); // Set session key
+        System.out.println("existing emp ka mail bhejne se pahle name aur emp_id kya hai ="+existingEmp.getEmail()+", "+existingEmp.getName()+", "+existingEmp.getEmpId());
+        // Send login email
+        emailService.sendLoginNotification(existingEmp.getEmail(), existingEmp.getName());
+        System.out.println("existing emp ka mail bhejne ke baad name aur emp_id kya hai ="+existingEmp.getEmail()+", "+existingEmp.getName()+", "+existingEmp.getEmpId());
+        
+        // Create response with CORS headers
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Login successful");
+        response.put("user", existingEmp);
+        response.put("Access-Control-Allow-Credentials", "true");
+        response.put("Access-Control-Expose-Headers", "Set-Cookie");
+
+        return ResponseEntity.ok(response);    // Return response with CORS headers
     }
 
-    // FIXED: Fetch employee by ID from database
+
+    // ✅ Get current logged-in employee
     @GetMapping("/current-employee")
     public ResponseEntity<?> currentUser(HttpSession session) {
-        String empId = (String) session.getAttribute("empId");
-        System.out.println("empId = " + empId);
-        
-        if (empId == null) {
+        Employee emp = (Employee) session.getAttribute("emp");
+        System.out.println("emp kon hai = "+emp);
+        if (emp == null) {
             return ResponseEntity.status(401).body("Not logged in");
         }
-        
-        Optional<Employee> optionalEmp = repo.findByEmpId(empId);
-        if (optionalEmp.isEmpty()) {
-            return ResponseEntity.status(404).body("Employee not found");
-        }
-        
-        Employee emp = optionalEmp.get();
-        System.out.println("Fetched employee: " + emp.getEmail());
+        System.out.println("EmpId : " + emp.getEmpId());
         return ResponseEntity.ok(emp);
     }
 
@@ -140,3 +150,4 @@ public class EmployeeController {
         return ResponseEntity.ok("Logged out successfully");
     }
 }
+

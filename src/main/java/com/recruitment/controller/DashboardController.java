@@ -1,37 +1,36 @@
 package com.recruitment.controller;
 
 import com.recruitment.dto.DashboardStatsDto;
-import com.recruitment.entity.Application;
 import com.recruitment.entity.Job;
-import com.recruitment.repository.JobRepository;
 import com.recruitment.service.DashboardService;
-
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardController {
 
+    private final DashboardService dashboardService;
+
     @Autowired
-    private DashboardService dashboardService;
-    
-    @Autowired
-    private JobRepository jobRepository; // ✅ Inject job repo
+    public DashboardController(DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
+    }
 
     @GetMapping("/stats/{empId}")
-    public DashboardStatsDto getDashboardStats(@PathVariable String empId) {
-    	System.out.println("dashboard is triggered" +empId);
-        return dashboardService.getDashboardStats(empId);
+    public ResponseEntity<DashboardStatsDto> getDashboardStats(@PathVariable String empId) {
+    	System.out.println("dashboard is triggered");
+        DashboardStatsDto stats = dashboardService.getDashboardStats(empId);
+        System.out.println("dashboard is ended");
+        return ResponseEntity.ok(stats);
     }
     
- // ✅ New endpoint to fetch jobs posted by a specific employer
     @GetMapping("/employer/{empId}")
-    public List<Job> getJobsByEmployer(@PathVariable String empId) {
-        System.out.println("Fetching jobs for employer: " + empId);
-        return jobRepository.findByPostedBy_EmpId(empId);
+    public ResponseEntity<List<Job>> getJobsByEmployer(@PathVariable String empId) {
+        List<Job> jobs = dashboardService.getJobsByEmployer(empId);
+        return ResponseEntity.ok(jobs);
     }
 }

@@ -54,6 +54,45 @@ public class EmailService {
         }
     }
 
+    
+
+	 // Add this method to your EmailService
+ // In EmailService.java
+    public void sendVerificationEmail(String to, String name, String token) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            
+            helper.setTo(to);
+            helper.setSubject("Verify Your Email - Recruitment Portal");
+            
+            // Use environment variable for frontend URL or a config property
+            String frontendUrl = System.getenv("FRONTEND_URL");
+            if (frontendUrl == null || frontendUrl.isEmpty()) {
+                frontendUrl = "http://localhost:8080"; // default for development
+            }
+            
+            String verificationUrl = frontendUrl + "auth/user/verify-email?token=" + token;
+            
+            String content = "<h2>Email Verification</h2>" +
+                             "<p>Hello <strong>" + name + "</strong>,</p>" +
+                             "<p>Thank you for registering with our Recruitment Portal. " +
+                             "Please click the link below to verify your email address:</p>" +
+                             "<p><a href=\"" + verificationUrl + "\" style=\"background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;\">Verify Email</a></p>" +
+                             "<p>This link will expire in 24 hours.</p>" +
+                             "<p>If the button doesn't work, copy and paste this URL in your browser:</p>" +
+                             "<p>" + verificationUrl + "</p>" +
+                             "<br><p>Regards,<br>Recruitment Portal Team</p>";
+            
+            helper.setText(content, true);
+            mailSender.send(message);
+            
+            System.out.println("Verification email sent to " + to);
+        } catch (Exception e) {
+            System.err.println("Failed to send verification email: " + e.getMessage());
+            throw new RuntimeException("Failed to send verification email", e);
+        }
+    }
     /**
      * Sends an application email to the employer with applicant details and resume.
      */
@@ -123,6 +162,24 @@ public class EmailService {
 
         helper.setText(sb.toString(), true);
         mailSender.send(message);
+    }
+    
+ // Add to EmailService class
+    public void sendHtmlEmail(String to, String subject, String htmlContent) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true); // true indicates HTML
+            
+            mailSender.send(message);
+            System.out.println("HTML email sent to " + to);
+        } catch (Exception e) {
+            System.err.println("Failed to send HTML email to " + to + ": " + e.getMessage());
+            throw new RuntimeException("Failed to send email", e);
+        }
     }
 
     /**

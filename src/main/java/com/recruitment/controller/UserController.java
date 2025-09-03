@@ -1,9 +1,9 @@
 package com.recruitment.controller;
 
-
 import com.recruitment.dto.UserDto;
 import com.recruitment.entity.User;
 import com.recruitment.repository.UserRepo;
+import com.recruitment.service.EmailService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -12,10 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @RestController
@@ -24,6 +22,9 @@ public class UserController {
 
     @Autowired
     private UserRepo repo;
+
+    @Autowired
+    private EmailService emailService;
 
     private final Pattern PASSWORD_PATTERN = Pattern.compile(
         "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
@@ -52,11 +53,86 @@ public class UserController {
         user.setSkills(dto.getSkills());
         user.setProfilePicture(dto.getProfilePicture());
         user.setResume(dto.getResume());
+        user.setDob(dto.getDob());
+        user.setExperience(dto.getExperience());
+        user.setLinkedin(dto.getLinkedin());
+        user.setGithub(dto.getGithub());
+        
+        // Generate verification token and set expiry
+        String verificationToken = UUID.randomUUID().toString();
+        user.setVerificationToken(verificationToken);
+        user.setTokenExpiryDate(LocalDateTime.now().plusHours(24));
+        user.setEmailVerified(false);
 
         repo.save(user);
-        return ResponseEntity.ok("User registered successfully");
+        
+        // Send verification email
+        try {
+        	String link = "http://localhost:8080/auth/user/verify-email?token=" + verificationToken;
+            emailService.sendVerificationEmail(user.getEmail(), user.getName(), link);
+        } catch (Exception e) {
+            System.err.println("Failed to send verification email: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok("User registered successfully. Please check your email for verification.");
     }
 
+    // Verify Email
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        Optional<User> userOptional = repo.findByVerificationToken(token);
+        
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("Invalid verification token.");
+        }
+        
+        User user = userOptional.get();
+        
+        if (user.isEmailVerified()) {
+            return ResponseEntity.ok("Email already verified.");
+        }
+        
+        if (user.getTokenExpiryDate().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("Verification token has expired.");
+        }
+        
+        user.setEmailVerified(true);
+        user.setVerificationToken(null);
+        user.setTokenExpiryDate(null);
+        repo.save(user);
+        
+        return ResponseEntity.ok("Email verified successfully. You can now login.");
+    }
+
+    // Resend Verification Email
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(@RequestParam String email) {
+        Optional<User> userOptional = repo.findByEmail(email);
+        
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("User not found.");
+        }
+        
+        User user = userOptional.get();
+        
+        if (user.isEmailVerified()) {
+            return ResponseEntity.badRequest().body("Email is already verified.");
+        }
+        
+        // Generate new token
+        String token = UUID.randomUUID().toString();
+        user.setVerificationToken(token);
+        user.setTokenExpiryDate(LocalDateTime.now().plusHours(24));
+        repo.save(user);
+        
+        // Resend verification email
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), user.getName(), token);
+            return ResponseEntity.ok("Verification email sent successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to send verification email.");
+        }
+    }
 
     // Login
     @PostMapping("/login")
@@ -76,6 +152,12 @@ public class UserController {
             }
 
             User existingUser = optionalUser.get();
+            
+            // Check if email is verified
+            if (!existingUser.isEmailVerified()) {
+                return ResponseEntity.status(401).body("Email not verified. Please check your email for verification link.");
+            }
+            
             if (!existingUser.getPassword().equals(user.getPassword())) {
                 System.out.println("Login failed: Invalid password for user " + user.getEmail());
                 return ResponseEntity.status(401).body("Invalid email or password");
@@ -114,7 +196,7 @@ public class UserController {
         }
     }
     
- // Update user profile
+    // Update user profile
     @PutMapping("/update/{id}")
     @Transactional
     public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody User updatedUser) {
@@ -127,6 +209,12 @@ public class UserController {
         existingUser.setName(updatedUser.getName());
         existingUser.setEmail(updatedUser.getEmail());
         existingUser.setMobile(updatedUser.getMobile());
+        existingUser.setAddress(updatedUser.getAddress());
+        existingUser.setDob(updatedUser.getDob());
+        existingUser.setExperience(updatedUser.getExperience());
+        existingUser.setLinkedin(updatedUser.getLinkedin());
+        existingUser.setGithub(updatedUser.getGithub());
+        existingUser.setSkills(updatedUser.getSkills());
         existingUser.setProfilePicture(updatedUser.getProfilePicture());
         repo.save(existingUser);
 
@@ -135,15 +223,12 @@ public class UserController {
     
     @GetMapping("/{userId}/resume")
     public ResponseEntity<?> getUserResume(@PathVariable String userId) {
-    	System.out.println("resume fetch is triggered");
-        // Fetch resume from your DB (you may need to adjust this)
+        // Fetch resume from your DB
         String resume = repo.findByUserId(userId)
             .map(u -> u.getResume())
             .orElse("Sample default resume text here.");
         return ResponseEntity.ok(Map.of("resume", resume));
     }
-
-
 
     // Get current logged-in user
     @GetMapping("/current-user")
@@ -173,6 +258,12 @@ public class UserController {
             response.put("name", user.getName());
             response.put("email", user.getEmail());
             response.put("role", user.getRole());
+            response.put("address", user.getAddress());
+            response.put("dob", user.getDob());
+            response.put("experience", user.getExperience());
+            response.put("linkedin", user.getLinkedin());
+            response.put("github", user.getGithub());
+            response.put("skills", user.getSkills());
             response.put("sessionId", session.getId());
             response.put("sessionCreated", new Date(session.getCreationTime()));
             response.put("lastAccessed", new Date(session.getLastAccessedTime()));
