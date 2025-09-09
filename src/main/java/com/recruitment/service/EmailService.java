@@ -60,37 +60,48 @@ public class EmailService {
  // In EmailService.java
     public void sendVerificationEmail(String to, String name, String token) {
         try {
+            System.out.println("Sending verification email to: " + to);
+            System.out.println("Verification token: " + token);
+            
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
             
             helper.setTo(to);
             helper.setSubject("Verify Your Email - Recruitment Portal");
             
-            // Use environment variable for frontend URL or a config property
-            String frontendUrl = System.getenv("FRONTEND_URL");
-            if (frontendUrl == null || frontendUrl.isEmpty()) {
-                frontendUrl = "https://backend-n4w7.onrender.com"; // default for development
-            }
+            // Use the configured frontend URL
+//            String frontendUrl = emailConfig.getFrontendUrl();
+            System.out.println("Using frontend URL: " + token);
             
-            String verificationUrl = frontendUrl + "auth/user/verify-email?token=" + token;
+            // Ensure the URL has the correct format
+            // Just use the token directly, not the full URL
+//            String verificationUrl = token;
+//            if (frontendUrl.endsWith("/")) {
+//                verificationUrl = frontendUrl + "auth/user/verify-email?token=" + token;
+//            } else {
+//                verificationUrl = frontendUrl + "/auth/user/verify-email?token=" + token;
+//            }
+            
+            System.out.println("Verification URL: " + token);
             
             String content = "<h2>Email Verification</h2>" +
                              "<p>Hello <strong>" + name + "</strong>,</p>" +
                              "<p>Thank you for registering with our Recruitment Portal. " +
                              "Please click the link below to verify your email address:</p>" +
-                             "<p><a href=\"" + verificationUrl + "\" style=\"background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;\">Verify Email</a></p>" +
+                             "<p><a href=\"" + token + "\" style=\"background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;\">Verify Email</a></p>" +
                              "<p>This link will expire in 24 hours.</p>" +
                              "<p>If the button doesn't work, copy and paste this URL in your browser:</p>" +
-                             "<p>" + verificationUrl + "</p>" +
+                             "<p>" + token + "</p>" +
                              "<br><p>Regards,<br>Recruitment Portal Team</p>";
             
             helper.setText(content, true);
             mailSender.send(message);
             
-            System.out.println("Verification email sent to " + to);
+            System.out.println("Verification email sent successfully to " + to);
         } catch (Exception e) {
             System.err.println("Failed to send verification email: " + e.getMessage());
-            throw new RuntimeException("Failed to send verification email", e);
+            // Don't throw exception to prevent registration failure
+            // Just log the error and continue
         }
     }
     /**

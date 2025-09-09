@@ -125,11 +125,15 @@ public class UserController {
         user.setTokenExpiryDate(LocalDateTime.now().plusHours(24));
         repo.save(user);
         
-        // Resend verification email
+        // Resend verification email - pass only the token, not the full URL
         try {
+            System.out.println("resend triggered .. "+token);
             emailService.sendVerificationEmail(user.getEmail(), user.getName(), token);
+            System.out.println("resend me kya jaa raha .. "+token);
             return ResponseEntity.ok("Verification email sent successfully.");
+
         } catch (Exception e) {
+            System.out.println("ressend part nhi chal raha hai");
             return ResponseEntity.status(500).body("Failed to send verification email.");
         }
     }
