@@ -4,10 +4,12 @@ import com.recruitment.entity.Application;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
-    List<Application> findByUserId(String userId);
+    
     boolean existsByUserIdAndJobId(String userId, String jobId);
     long countByJob_PostedBy_EmpId(String empId);
     long countByJob_PostedBy_EmpIdAndStatus(String empId, String status);
@@ -25,4 +27,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 	 // Add this method to your ApplicationRepository interface
 	 @Query("SELECT a FROM Application a WHERE a.jobId = :jobId")
 	 List<Application> findByJobId(@Param("jobId") String jobId);
+	 
+	 @Transactional // Add this annotation
+	 List<Application> findByUserId(String userId);
 }

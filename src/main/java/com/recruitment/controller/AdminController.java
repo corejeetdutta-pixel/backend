@@ -103,13 +103,16 @@ public class AdminController {
     @GetMapping("/users")
     public ResponseEntity<List<User>> getAllUsers() {
         try {
+        	System.out.println("admin user fetch kar raha hai...");
             List<User> users = userRepo.findAll();
             // Remove sensitive information
             users.forEach(user -> {
                 
             });
+            System.out.println("admin fetch ho gya");
             return ResponseEntity.ok(users);
         } catch (Exception e) {
+        	System.out.println("admin me user fetch nhi ho raha hai");
             return ResponseEntity.status(500).body(null);
         }
     }
@@ -134,13 +137,16 @@ public class AdminController {
     @GetMapping("/employees")
     public ResponseEntity<List<Employee>> getAllEmployees() {
         try {
+        	System.out.println("admin emp fetch kar raha hai...");
             List<Employee> employees = employeeRepo.findAll();
             // Remove sensitive information
             employees.forEach(employee -> {
                 
             });
+            System.out.println("admin emp fetch ho gya...");
             return ResponseEntity.ok(employees);
         } catch (Exception e) {
+        	System.out.println("admin me emp fetch nhi ho raha hai");
             return ResponseEntity.status(500).body(null);
         }
     }

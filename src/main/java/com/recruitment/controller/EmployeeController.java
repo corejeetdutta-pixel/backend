@@ -80,7 +80,7 @@ public class EmployeeController {
         tokenRepo.save(verificationToken);
 
         // Use frontend URL for verification - FIXED URL FORMAT
-        String frontendUrl = "https://backend-n4w7.onrender.com";
+        String frontendUrl = "https://backend-n4w7.onrender.com";//https://backend-n4w7.onrender.com
         String link = frontendUrl + "/auth/employee/verify?token=" + token;
         
         emailService.sendVerificationEmail(emp.getEmail(), emp.getName(), link);
