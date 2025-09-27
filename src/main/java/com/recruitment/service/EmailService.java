@@ -11,8 +11,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import com.recruitment.dto.UserDto;
-
 @Service
 public class EmailService {
 
@@ -27,7 +25,6 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    
     /**
      * Sends login success notification email to employer
      */
@@ -42,7 +39,7 @@ public class EmailService {
             String content = "<h2>Login Successful</h2>" +
                              "<p>Hello <strong>" + name + "</strong>,</p>" +
                              "<p>You have successfully logged into your account.</p>" +
-                             "<p>If this wasn’t you, please reset your password immediately.</p>" +
+                             "<p>If this wasn't you, please reset your password immediately.</p>" +
                              "<br><p>Regards,<br>Recruitment Portal Team</p>";
 
             helper.setText(content, true);
@@ -54,14 +51,11 @@ public class EmailService {
         }
     }
 
-    
-
-	 // Add this method to your EmailService
- // In EmailService.java
-    public void sendVerificationEmail(String to, String name, String token) {
+    // FIXED: Now correctly uses the verification URL passed from UserController
+    public void sendVerificationEmail(String to, String name, String verificationUrl) {
         try {
             System.out.println("Sending verification email to: " + to);
-            System.out.println("Verification token: " + token);
+            System.out.println("Verification URL: " + verificationUrl);
             
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
@@ -69,47 +63,37 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject("Verify Your Email - Recruitment Portal");
             
-            // Use the configured frontend URL
-//            String frontendUrl = emailConfig.getFrontendUrl();
-            System.out.println("Using frontend URL: " + token);
-            
-            // Ensure the URL has the correct format
-            // Just use the token directly, not the full URL
-//            String verificationUrl = token;
-//            if (frontendUrl.endsWith("/")) {
-//                verificationUrl = frontendUrl + "auth/user/verify-email?token=" + token;
-//            } else {
-//                verificationUrl = frontendUrl + "/auth/user/verify-email?token=" + token;
-//            }
-            
-            System.out.println("Verification URL: " + token);
-            
-            String content = "<h2>Email Verification</h2>" +
+            String content = "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>" +
+                             "<h2 style='color: #0260a4;'>Email Verification</h2>" +
                              "<p>Hello <strong>" + name + "</strong>,</p>" +
                              "<p>Thank you for registering with our Recruitment Portal. " +
                              "Please click the link below to verify your email address:</p>" +
-                             "<p><a href=\"" + token + "\" style=\"background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;\">Verify Email</a></p>" +
+                             "<div style='text-align: center; margin: 30px 0;'>" +
+                             "<a href=\"" + verificationUrl + "\" style=\"background-color: #4CAF50; color: white; padding: 12px 24px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px; font-size: 16px;\">Verify Email Address</a>" +
+                             "</div>" +
                              "<p>This link will expire in 24 hours.</p>" +
                              "<p>If the button doesn't work, copy and paste this URL in your browser:</p>" +
-                             "<p>" + token + "</p>" +
-                             "<br><p>Regards,<br>Recruitment Portal Team</p>";
+                             "<p style='background-color: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all;'>" + verificationUrl + "</p>" +
+                             "<br><p>Regards,<br>Recruitment Portal Team</p>" +
+                             "</div>";
             
             helper.setText(content, true);
             mailSender.send(message);
             
-            System.out.println("Verification email sent successfully to " + to);
+            System.out.println("✅ Verification email sent successfully to " + to);
         } catch (Exception e) {
-            System.err.println("Failed to send verification email: " + e.getMessage());
+            System.err.println("❌ Failed to send verification email: " + e.getMessage());
+            e.printStackTrace();
             // Don't throw exception to prevent registration failure
-            // Just log the error and continue
         }
     }
+
     /**
      * Sends an application email to the employer with applicant details and resume.
      */
     public void sendApplicationEmail(
             String employerEmail,
-            UserDto user,
+            com.recruitment.dto.UserDto user,
             String jobTitle,
             String jobId,
             String jobDescription,
@@ -175,7 +159,6 @@ public class EmailService {
         mailSender.send(message);
     }
     
- // Add to EmailService class
     public void sendHtmlEmail(String to, String subject, String htmlContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
