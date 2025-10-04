@@ -96,7 +96,7 @@ public class UserController {
             // Send verification email - FIXED URL
             try {
                 // Use your actual frontend domain here
-                String frontendUrl = "https://backend-n4w7.onrender.com"; //https://backend-n4w7.onrender.com
+                String frontendUrl = "https://atract.in"; //https://atract.in
                 String verificationUrl = frontendUrl + "/auth/user/verify-email?token=" + verificationToken;
                 
                 emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl);
@@ -207,7 +207,7 @@ public class UserController {
             
             // Resend verification email with correct URL
             try {
-                String frontendUrl = "https://backend-n4w7.onrender.com";//https://backend-n4w7.onrender.com
+                String frontendUrl = "https://atract.in";//https://atract.in
                 String verificationUrl = frontendUrl + "/auth/user/verify-email?token=" + newToken;
                 
                 emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl);

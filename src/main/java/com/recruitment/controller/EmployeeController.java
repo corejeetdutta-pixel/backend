@@ -89,7 +89,7 @@ public class EmployeeController {
             System.out.println("✅ Verification token generated: " + token);
 
             // Use frontend URL for verification - FIXED URL FORMAT
-            String frontendUrl = "https://backend-n4w7.onrender.com"; // https://backend-n4w7.onrender.com
+            String frontendUrl = "https://atract.in"; // https://atract.in
             String verificationUrl = frontendUrl + "/auth/employee/verify?token=" + token;
             
             emailService.sendVerificationEmail(emp.getEmail(), emp.getName(), verificationUrl);
@@ -154,7 +154,7 @@ public class EmployeeController {
             }
 
             // Send verification email
-            String frontendUrl = "https://backend-n4w7.onrender.com"; // Change to your actual domain
+            String frontendUrl = "https://atract.in"; // Change to your actual domain
             String verificationUrl = frontendUrl + "/auth/employee/verify?token=" + verificationToken.getToken();
             
             emailService.sendVerificationEmail(employee.getEmail(), employee.getName(), verificationUrl);
