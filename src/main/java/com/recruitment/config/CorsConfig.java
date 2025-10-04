@@ -16,7 +16,8 @@ public class CorsConfig implements WebMvcConfigurer {
                 "http://localhost:5173",
                 "https://rec-2025-core.web.app",
                 "https://rec-2025-core.firebaseapp.com",
-                "https://1c.atract.in"
+                "https://atract.in",
+                "https://www.atract.in"
 
             )
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
