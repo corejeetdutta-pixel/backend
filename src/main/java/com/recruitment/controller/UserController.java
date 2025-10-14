@@ -43,7 +43,7 @@ public class UserController {
     private com.recruitment.service.CustomUserDetailsService userDetailsService;
 
     // ✅ Frontend URL injected from application.properties
-    @Value("${app.frontend.url:http://localhost:5173}")
+    @Value("${spring.mail.frontendUrl:http://localhost:5173}")
     private String frontendUrl;
 
     private final Pattern PASSWORD_PATTERN = Pattern.compile(
