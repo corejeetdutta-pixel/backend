@@ -50,7 +50,7 @@ public class EmployeeController {
     private com.recruitment.service.CustomUserDetailsService userDetailsService;
 
     // ✅ Inject frontend URL from application.properties
-    @Value("${app.frontend.url:http://localhost:5173}")
+    @Value("${spring.mail.frontendUrl:http://localhost:5173}")
     private String frontendUrl;
 
     // ✅ Password regex pattern
