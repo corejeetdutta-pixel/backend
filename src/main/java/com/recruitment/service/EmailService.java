@@ -105,7 +105,7 @@ public class EmailService {
                     <p style='background-color: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all;'>%s</p>
                     <br><p>Regards,<br>Recruitment Portal Team</p>
                 </div>
-            """.formatted(name, verificationUrl, verificationUrl);
+            """.formatted(name, tokenOrUrl, tokenOrUrl);
 
             helper.setText(content, true);
             mailSender.send(message);
