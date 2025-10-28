@@ -168,7 +168,7 @@ public class EmployeeController {
             }
 
             // Use dynamic frontend URL (from first class)
-            String verificationUrl = frontendUrl + "/verify?token=" + token;
+            String verificationUrl = frontendUrl + "/verify-employee?token=" + token;
             
             try {
                 emailService.sendVerificationEmail(emp.getEmail(), emp.getName(), verificationUrl);
@@ -398,7 +398,7 @@ public class EmployeeController {
             }
 
             // Send verification email using frontend URL
-            String verificationUrl = frontendUrl + "/verify?token=" + verificationToken.getToken();
+            String verificationUrl = frontendUrl + "/verify-employee?token=" + verificationToken.getToken();
             emailService.sendVerificationEmail(employee.getEmail(), employee.getName(), verificationUrl);
             
             System.out.println("✅ Verification email resent to: " + employee.getEmail());
