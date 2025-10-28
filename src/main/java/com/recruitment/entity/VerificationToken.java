@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "verification_token") // ✅ Added table name
+@Table(name = "verification_tokens")
 public class VerificationToken {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@GeneratedValue(strategy = GenerationType.IDENTITY) // ✅ CRITICAL FIX
 	private Long id;
 
 	@Column(unique = true, nullable = false)
@@ -20,7 +20,7 @@ public class VerificationToken {
 	@Column(nullable = false)
 	private boolean verified = false;
 
-	// ✅ FIXED: Use @ManyToOne instead of @OneToOne
+	// ✅ FIXED: ManyToOne relationship
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "employee_id", nullable = false)
 	private Employee employee;
@@ -66,4 +66,15 @@ public class VerificationToken {
 
 	public LocalDateTime getCreatedAt() { return createdAt; }
 	public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+	@Override
+	public String toString() {
+		return "VerificationToken{" +
+				"id=" + id +
+				", token='" + token + '\'' +
+				", expiryDate=" + expiryDate +
+				", verified=" + verified +
+				", employee=" + (employee != null ? employee.getEmail() : "null") +
+				'}';
+	}
 }
