@@ -4,59 +4,66 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "verification_token") // ✅ Added table name
 public class VerificationToken {
-    @Id @GeneratedValue
-    private Long id;
 
-    private String token;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    private LocalDateTime expiryDate;
+	@Column(unique = true, nullable = false)
+	private String token;
 
-    private boolean verified = false;
+	@Column(name = "expiry_date", nullable = false)
+	private LocalDateTime expiryDate;
 
-    @OneToOne
-    private Employee employee;
+	@Column(nullable = false)
+	private boolean verified = false;
 
-	public Long getId() {
-		return id;
+	// ✅ FIXED: Use @ManyToOne instead of @OneToOne
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "employee_id", nullable = false)
+	private Employee employee;
+
+	@Column(name = "created_at", updatable = false)
+	private LocalDateTime createdAt;
+
+	@PrePersist
+	protected void onCreate() {
+		this.createdAt = LocalDateTime.now();
 	}
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+	// Constructors
+	public VerificationToken() {}
 
-	public String getToken() {
-		return token;
-	}
-
-	public void setToken(String token) {
+	public VerificationToken(String token, Employee employee, LocalDateTime expiryDate) {
 		this.token = token;
-	}
-
-	public LocalDateTime getExpiryDate() {
-		return expiryDate;
-	}
-
-	public void setExpiryDate(LocalDateTime expiryDate) {
-		this.expiryDate = expiryDate;
-	}
-
-	public boolean isVerified() {
-		return verified;
-	}
-
-	public void setVerified(boolean verified) {
-		this.verified = verified;
-	}
-
-	public Employee getEmployee() {
-		return employee;
-	}
-
-	public void setEmployee(Employee employee) {
 		this.employee = employee;
+		this.expiryDate = expiryDate;
+		this.verified = false;
 	}
 
-    // Getters and setters
-    
+	// Utility method
+	public boolean isExpired() {
+		return LocalDateTime.now().isAfter(expiryDate);
+	}
+
+	// Getters and setters
+	public Long getId() { return id; }
+	public void setId(Long id) { this.id = id; }
+
+	public String getToken() { return token; }
+	public void setToken(String token) { this.token = token; }
+
+	public LocalDateTime getExpiryDate() { return expiryDate; }
+	public void setExpiryDate(LocalDateTime expiryDate) { this.expiryDate = expiryDate; }
+
+	public boolean isVerified() { return verified; }
+	public void setVerified(boolean verified) { this.verified = verified; }
+
+	public Employee getEmployee() { return employee; }
+	public void setEmployee(Employee employee) { this.employee = employee; }
+
+	public LocalDateTime getCreatedAt() { return createdAt; }
+	public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
