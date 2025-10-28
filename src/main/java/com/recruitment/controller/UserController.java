@@ -98,7 +98,7 @@ public class UserController {
 
             // ✅ Use frontend URL dynamically
             String verificationUrl = frontendUrl + "/verify-email?token=" + verificationToken;
-            emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl);
+            emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl, EmailService.EmailType.USER_VERIFICATION);
 
             System.out.println("✅ Verification email sent to: " + user.getEmail());
             System.out.println("✅ Verification URL: " + verificationUrl);
@@ -175,7 +175,7 @@ public class UserController {
             repo.save(user);
 
             String verificationUrl = frontendUrl + "/verify-email?token=" + newToken;
-            emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl);
+            emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl, EmailService.EmailType.USER_VERIFICATION);
 
             System.out.println("✅ Verification email resent to: " + user.getEmail());
             System.out.println("✅ Verification URL: " + verificationUrl);

@@ -92,7 +92,7 @@ public class Employee implements Serializable {
     @JsonIgnore
     private List<Job> postedJobs = new ArrayList<>();
 
-    // ✅ FIXED: Add proper relationship with VerificationToken (remove the direct token field)
+    // ✅ FIXED: Proper relationship
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<VerificationToken> verificationTokens = new ArrayList<>();
@@ -115,7 +115,6 @@ public class Employee implements Serializable {
 
     // Custom validation method
     public void validate() {
-        // Age validation (must be at least 18 years old)
         if (dateOfBirth != null) {
             int age = Period.between(dateOfBirth, LocalDate.now()).getYears();
             if (age < 18) {
@@ -126,7 +125,6 @@ public class Employee implements Serializable {
             }
         }
 
-        // Aadhar validation (basic checksum validation)
         if (aadharNumber != null && aadharNumber.length() == 12) {
             try {
                 Long.parseLong(aadharNumber);
@@ -214,5 +212,14 @@ public class Employee implements Serializable {
         this.verificationTokens = verificationTokens;
     }
 
-    // ❌ REMOVED: getVerificationToken() and setVerificationToken() methods
+    @Override
+    public String toString() {
+        return "Employee{" +
+                "id=" + id +
+                ", empId='" + empId + '\'' +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", verified=" + verified +
+                '}';
+    }
 }

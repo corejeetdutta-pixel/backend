@@ -171,7 +171,7 @@ public class EmployeeController {
             String verificationUrl = frontendUrl + "/verify-employee?token=" + token;
             
             try {
-                emailService.sendVerificationEmail(emp.getEmail(), emp.getName(), verificationUrl);
+                emailService.sendVerificationEmail(emp.getEmail(), emp.getName(), verificationUrl,EmailService.EmailType.EMPLOYEE_VERIFICATION);
                 System.out.println("✅ Verification email sent to: " + emp.getEmail());
                 System.out.println("✅ Verification URL: " + verificationUrl);
             } catch (Exception e) {
@@ -272,7 +272,7 @@ public class EmployeeController {
             final String jwt = jwtUtil.generateToken(userDetails, existingEmp.getEmpId(), "EMPLOYEE");
             
             // Send login email notification
-            emailService.sendLoginNotification(existingEmp.getEmail(), existingEmp.getName());
+            emailService.sendLoginNotification(existingEmp.getEmail(), existingEmp.getName(), EmailService.EmailType.EMPLOYEE_VERIFICATION);
             
             // Create response (exclude sensitive data)
             Map<String, Object> response = new HashMap<>();
