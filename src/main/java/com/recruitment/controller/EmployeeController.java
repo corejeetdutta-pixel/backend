@@ -168,10 +168,10 @@ public class EmployeeController {
             }
 
             // Use dynamic frontend URL (from first class)
-            String verificationUrl = frontendUrl + "/verify-email?token=" + token;
+            String verificationUrl = frontendUrl + "/verify-employee?token=" + token;
             
             try {
-                emailService.sendVerificationEmail(emp.getEmail(), emp.getName(), verificationUrl);
+                emailService.sendVerificationEmail(emp.getEmail(), emp.getName(), verificationUrl,EmailService.EmailType.EMPLOYEE_VERIFICATION);
                 System.out.println("✅ Verification email sent to: " + emp.getEmail());
                 System.out.println("✅ Verification URL: " + verificationUrl);
             } catch (Exception e) {
@@ -272,7 +272,7 @@ public class EmployeeController {
             final String jwt = jwtUtil.generateToken(userDetails, existingEmp.getEmpId(), "EMPLOYEE");
             
             // Send login email notification
-            emailService.sendLoginNotification(existingEmp.getEmail(), existingEmp.getName());
+            emailService.sendLoginNotification(existingEmp.getEmail(), existingEmp.getName(), EmailService.EmailType.EMPLOYEE_VERIFICATION);
             
             // Create response (exclude sensitive data)
             Map<String, Object> response = new HashMap<>();
@@ -398,7 +398,7 @@ public class EmployeeController {
             }
 
             // Send verification email using frontend URL
-            String verificationUrl = frontendUrl + "/verify-email?token=" + verificationToken.getToken();
+            String verificationUrl = frontendUrl + "/verify-employee?token=" + verificationToken.getToken();
             emailService.sendVerificationEmail(employee.getEmail(), employee.getName(), verificationUrl);
             
             System.out.println("✅ Verification email resent to: " + employee.getEmail());

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,82 +12,109 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Table(name = "employees") // Added table name for consistency
+@Table(name = "employees")
 public class Employee implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    
-    @Id 
+
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(unique = true, updatable = false)
+
+    @Column(name = "emp_id", unique = true, updatable = false, nullable = false)
     private String empId;
-    
+
+    @Column(nullable = false)
     private boolean verified = false;
-    
+
     @NotBlank(message = "Name is required")
     @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
     @Pattern(regexp = "^[a-zA-Z\\s.'-]+$", message = "Name can only contain letters, spaces, apostrophes, hyphens, and dots")
+    @Column(nullable = false)
     private String name;
-    
+
     @NotBlank(message = "Email is required")
     @Email(message = "Please provide a valid email address")
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
-    
+
     @NotBlank(message = "Password is required")
-    @Column(length = 100) // Increased length for encoded passwords
+    @Column(nullable = false, length = 255)
     private String password;
-    
+
     @NotBlank(message = "Mobile number is required")
     @Pattern(regexp = "^[6-9]\\d{9}$", message = "Please provide a valid 10-digit mobile number starting with 6-9")
+    @Column(nullable = false)
     private String mobile;
-    
+
     @NotBlank(message = "Address is required")
     @Size(min = 10, max = 500, message = "Address must be between 10 and 500 characters")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String address;
-    
+
     @NotBlank(message = "Gender is required")
     @Pattern(regexp = "^(MALE|FEMALE|OTHER)$", message = "Gender must be MALE, FEMALE, or OTHER")
+    @Column(nullable = false)
     private String gender;
-    
+
     @NotNull(message = "Date of birth is required")
     @Past(message = "Date of birth must be in the past")
+    @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
-    
+
     @NotBlank(message = "Aadhar number is required")
     @Pattern(regexp = "^\\d{12}$", message = "Aadhar number must be exactly 12 digits")
+    @Column(name = "aadhar_number", nullable = false, unique = true)
     private String aadharNumber;
-    
+
     @NotBlank(message = "PAN number is required")
     @Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]{1}$", message = "PAN number must be in format ABCDE1234F")
+    @Column(name = "pan_number", nullable = false, unique = true)
     private String panNumber;
-    
-    @Column(columnDefinition = "TEXT")
+
+    @Column(name = "profile_picture", columnDefinition = "TEXT")
     private String profilePicture;
-    
+
+    @Column(nullable = false)
     private String role = "EMPLOYER";
-    
+
     @NotNull(message = "You must agree to terms and conditions")
+    @Column(name = "agreed_to_terms", nullable = false)
     private Boolean agreedToTerms = false;
-    
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @OneToMany(mappedBy = "postedBy", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Job> postedJobs = new ArrayList<>();
 
-    // Auto-generate EmpId before persisting
+    // ✅ FIXED: Proper relationship
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<VerificationToken> verificationTokens = new ArrayList<>();
+
+    // Auto-generate EmpId and timestamps before persisting
     @PrePersist
-    public void generateEmpId() {
+    public void prePersist() {
         if (this.empId == null) {
-            this.empId = "EMP" + System.currentTimeMillis() + 
-                (int)(Math.random() * 1000);
+            this.empId = "EMP" + System.currentTimeMillis() +
+                    (int)(Math.random() * 1000);
         }
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
-    
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
     // Custom validation method
     public void validate() {
-        // Age validation (must be at least 18 years old)
         if (dateOfBirth != null) {
             int age = Period.between(dateOfBirth, LocalDate.now()).getYears();
             if (age < 18) {
@@ -96,8 +124,7 @@ public class Employee implements Serializable {
                 throw new IllegalArgumentException("Please provide a valid date of birth");
             }
         }
-        
-        // Aadhar validation (basic checksum validation)
+
         if (aadharNumber != null && aadharNumber.length() == 12) {
             try {
                 Long.parseLong(aadharNumber);
@@ -110,14 +137,9 @@ public class Employee implements Serializable {
     // Constructors
     public Employee() {}
 
-    public Employee(Long id, String empId, boolean verified, String name, String email, 
-                   String password, String mobile, String address, String gender, 
-                   LocalDate dateOfBirth, String aadharNumber, String panNumber, 
-                   String profilePicture, String role, Boolean agreedToTerms, List<Job> postedJobs) {
-        super();
-        this.id = id;
-        this.empId = empId;
-        this.verified = verified;
+    public Employee(String name, String email, String password, String mobile,
+                    String address, String gender, LocalDate dateOfBirth,
+                    String aadharNumber, String panNumber, Boolean agreedToTerms) {
         this.name = name;
         this.email = email;
         this.password = password;
@@ -127,13 +149,10 @@ public class Employee implements Serializable {
         this.dateOfBirth = dateOfBirth;
         this.aadharNumber = aadharNumber;
         this.panNumber = panNumber;
-        this.profilePicture = profilePicture;
-        this.role = role;
-        this.agreedToTerms = agreedToTerms;
-        this.postedJobs = postedJobs;
+        this.agreedToTerms = agreedToTerms != null ? agreedToTerms : false;
     }
 
-    // Getters and Setters (same as before)
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -179,8 +198,28 @@ public class Employee implements Serializable {
     public Boolean getAgreedToTerms() { return agreedToTerms; }
     public void setAgreedToTerms(Boolean agreedToTerms) { this.agreedToTerms = agreedToTerms; }
 
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
     public List<Job> getPostedJobs() { return postedJobs; }
     public void setPostedJobs(List<Job> postedJobs) { this.postedJobs = postedJobs; }
 
-    public static long getSerialversionuid() { return serialVersionUID; }
+    public List<VerificationToken> getVerificationTokens() { return verificationTokens; }
+    public void setVerificationTokens(List<VerificationToken> verificationTokens) {
+        this.verificationTokens = verificationTokens;
+    }
+
+    @Override
+    public String toString() {
+        return "Employee{" +
+                "id=" + id +
+                ", empId='" + empId + '\'' +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", verified=" + verified +
+                '}';
+    }
 }
