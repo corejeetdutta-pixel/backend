@@ -124,7 +124,8 @@ public class AIController {
     public GenerateQuestionsResponse generateQuestions(@RequestBody GenerateQuestionsRequest request) {
         System.out.println("Question generation triggered with experience level: " + request.getExperienceLevel());
 
-        int questionCount = request.getCount() > 0 ? request.getCount() : 5;
+        int questionCount = request.getCount() > 0 ? request.getCount() : 10;
+        System.out.println(questionCount);
         String difficultyLevel = determineDifficultyLevel(request.getExperienceLevel());
 
         String prompt = String.format("""
@@ -231,7 +232,7 @@ public class AIController {
         List<String> answers = request.getAnswers();
 
         int totalScore = 0;
-        for (int i = 0; i < questions.size(); i++) {
+        for (int i = 5; i < questions.size(); i++) {
             String q = questions.get(i);
             String a = answers.size() > i ? answers.get(i) : "";
             boolean relevant = evaluationService.isAnswerRelevant(q, a);

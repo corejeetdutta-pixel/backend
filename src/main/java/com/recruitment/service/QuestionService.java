@@ -39,7 +39,7 @@ public class QuestionService {
         Set<String> usedQuestions = questionRepository.findUsedQuestionsForJob(jobTitle);
         
         List<GenerateQuestionsResponse.MultipleChoiceQuestion> newQuestions = 
-            generateQuestionsWithAI(jobTitle, difficulty, count + 5);
+            generateQuestionsWithAI(jobTitle, difficulty, count + 10);
         
         List<GenerateQuestionsResponse.MultipleChoiceQuestion> uniqueQuestions = new ArrayList<>();
         for (GenerateQuestionsResponse.MultipleChoiceQuestion question : newQuestions) {
