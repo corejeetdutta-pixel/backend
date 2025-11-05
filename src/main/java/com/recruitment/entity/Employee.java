@@ -12,7 +12,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Table(name = "employees")
+@Table(name = "employee")
 public class Employee implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -21,7 +21,7 @@ public class Employee implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "employee_id", unique = true, updatable = false, nullable = false)
+    @Column(name = "emp_id", unique = true, updatable = false, nullable = false)
     private String empId;
 
     @Column(nullable = false)
