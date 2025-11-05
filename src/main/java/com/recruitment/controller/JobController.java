@@ -192,19 +192,18 @@ public class JobController {
         }
     }
 
-    /*@GetMapping("/all")
+    @GetMapping("/all")
     public ResponseEntity<List<Job>> getAllJobs() {
         try {
             List<Job> jobs = jobRepo.findAll();
-            String schema = JobSchemaGenerator.generateJobPostingSchema(job);
             return ResponseEntity.ok(jobs);
         } catch (Exception e) {
             System.err.println("Error fetching all jobs: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ArrayList<>());
         }
-    }*/
+    }
 
-    @GetMapping("/all")
+    /*@GetMapping("/all")
     public ResponseEntity<List<JobWithSchemaResponse>> getAllJobs() {
         try {
             List<Job> jobs = jobRepo.findAll();
@@ -222,7 +221,7 @@ public class JobController {
             System.err.println("Error fetching all jobs: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ArrayList<>());
         }
-    }
+    }*/
 
     // New endpoint for admin to get all jobs
     @GetMapping("/admin/all-jobs")
@@ -620,8 +619,12 @@ public class JobController {
             publicJob.put("requirements", job.getRequirements());
             publicJob.put("perks", job.getPerks());
             publicJob.put("contactEmail", job.getContactEmail());
+            String schema = jobSchemaGenerator.generateJobPostingSchema(job);
 
-            return ResponseEntity.ok(publicJob);
+            JobWithSchemaResponse response = new JobWithSchemaResponse(job, schema);
+
+            return ResponseEntity.ok(response);
+            //return ResponseEntity.ok(publicJob);
         } catch (Exception e) {
             System.err.println("Error fetching job: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching job");
