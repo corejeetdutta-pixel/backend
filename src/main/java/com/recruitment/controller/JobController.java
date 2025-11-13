@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import com.recruitment.dto.JobWithSchemaResponse;
 import com.recruitment.util.jobSchemaGenerator;
+import com.recruitment.service.ApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +49,10 @@ public class JobController {
 
     @Autowired
     private ApplicationRepository applicationRepository;
+
+    @Autowired
+    private ApplicationService applicationService;
+
 
     // List of admin emails
     private static final List<String> ADMIN_EMAILS = List.of(
@@ -259,82 +264,33 @@ public class JobController {
         }
     }
 
-    // Fixed applicants endpoint for regular users
+    // COMPLETELY FIXED: Get applicants without LOB stream issues using Native Query
     @GetMapping("/{jobId}/applicants")
-    public ResponseEntity<?> getApplicantsForJob(@PathVariable String jobId, HttpServletRequest request) {
-        System.out.println("Applicants endpoint called for job: " + jobId);
-
-        // Check if user is logged in as employee using JWT
-        Employee emp = getEmployeeFromRequest(request);
-        if (emp == null && !isAdmin(request)) {
-            System.out.println("Unauthorized access attempt");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not logged in");
-        }
-
+    public ResponseEntity<?> getJobApplicants(@PathVariable String jobId) {
         try {
-            Optional<Job> jobOpt = jobRepo.findByJobId(jobId);
-            if (jobOpt.isEmpty()) {
-                System.out.println("Job not found: " + jobId);
-                return ResponseEntity.ok(new ArrayList<>());
-            }
+            System.out.println("Fetching applicants for job ID: " + jobId);
 
-            Job job = jobOpt.get();
-            // Check if the job has a poster
-            if (job.getPostedBy() == null) {
-                System.out.println("Job has no postedBy employee: " + jobId);
-                // Only admin can view applicants for a job with no poster
-                if (!isAdmin(request)) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You don't have permission to view applicants for this job");
-                }
-            } else {
-                System.out.println("Job found: " + job.getTitle() + " posted by: " + job.getPostedBy().getEmpId());
-                // Check if the employee owns this job or is admin
-                if (emp != null && !job.getPostedBy().getEmpId().equals(emp.getEmpId()) && !isAdmin(request)) {
-                    System.out.println("Forbidden: Employee " + emp.getEmpId() + " does not own job " + jobId);
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You don't have permission to view applicants for this job");
-                }
-            }
+            Map<String, Object> response = applicationService.getApplicantsByJobId(jobId);
 
-            List<Application> applications = applicationRepository.findApplicationsByJobIdWithUser(jobId);
-            System.out.println("Found " + (applications != null ? applications.size() : 0) + " applications");
+            // Log the response for debugging
+            System.out.println("Found " + response.get("count") + " applicants for job: " + jobId);
 
-            // Ensure we always return an array, even if null
-            List<Map<String, Object>> applicants = new ArrayList<>();
-            if (applications != null) {
-                applicants = applications.stream().map(app -> {
-                    User user = app.getUser();
-                    Map<String, Object> dto = new HashMap<>();
-                    dto.put("name", user.getName());
-                    dto.put("email", user.getEmail());
-                    dto.put("mobile", user.getMobile());
-                    dto.put("qualification", user.getQualification());
-                    dto.put("gender", user.getGender());
-                    dto.put("dob", user.getDob());
-                    dto.put("address", user.getAddress());
-                    dto.put("passoutYear", user.getPassoutYear());
-                    dto.put("experience", user.getExperience());
-                    dto.put("skills", user.getSkills());
-                    dto.put("linkedin", user.getLinkedin());
-                    dto.put("github", user.getGithub());
-                    dto.put("score", app.getScore());
-                    dto.put("status", app.getStatus());
-                    dto.put("appliedAt", app.getAppliedAt());
-                    dto.put("applicationId", app.getId());
-                    dto.put("resume", user.getResume());
-                    return dto;
-                }).collect(Collectors.toList());
-            }
-
-            System.out.println("Returning " + applicants.size() + " applicants");
-            return ResponseEntity.ok(applicants);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            System.err.println("Error fetching applicants: " + e.getMessage());
+            System.err.println("Error fetching applicants for job " + jobId + ": " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching applicants: " + e.getMessage());
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Failed to fetch applicants");
+            errorResponse.put("error", e.getMessage());
+            errorResponse.put("jobId", jobId);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
-    // Fixed admin applicants endpoint
+    // FIXED: Admin applicants endpoint using native query
     @GetMapping("/admin/{jobId}/applicants")
     public ResponseEntity<?> getApplicantsForJobAdmin(@PathVariable String jobId, HttpServletRequest request) {
         System.out.println("Admin applicants endpoint called for job: " + jobId);
@@ -352,41 +308,39 @@ public class JobController {
                 return ResponseEntity.ok(new ArrayList<>());
             }
 
-            Job job = jobOpt.get();
-            if (job.getPostedBy() != null) {
-                System.out.println("Job found: " + job.getTitle() + " posted by: " + job.getPostedBy().getEmpId());
-            } else {
-                System.out.println("Job found: " + job.getTitle() + " but has no postedBy");
-            }
+            // FIX: Use native query to completely avoid LOB issues
+            List<Object[]> nativeResults = applicationRepository.findApplicationsByJobIdNative(jobId);
 
-            List<Application> applications = applicationRepository.findApplicationsByJobIdWithUser(jobId);
-            System.out.println("Found " + (applications != null ? applications.size() : 0) + " applications");
+            System.out.println("Found " + (nativeResults != null ? nativeResults.size() : 0) + " applications");
 
-            // Ensure we always return an array, even if null
+            // Convert native query results to DTOs
             List<Map<String, Object>> applicants = new ArrayList<>();
-            if (applications != null) {
-                applicants = applications.stream().map(app -> {
-                    User user = app.getUser();
+            if (nativeResults != null) {
+                for (Object[] result : nativeResults) {
                     Map<String, Object> dto = new HashMap<>();
-                    dto.put("name", user.getName());
-                    dto.put("email", user.getEmail());
-                    dto.put("mobile", user.getMobile());
-                    dto.put("qualification", user.getQualification());
-                    dto.put("gender", user.getGender());
-                    dto.put("dob", user.getDob());
-                    dto.put("address", user.getAddress());
-                    dto.put("passoutYear", user.getPassoutYear());
-                    dto.put("experience", user.getExperience());
-                    dto.put("skills", user.getSkills());
-                    dto.put("linkedin", user.getLinkedin());
-                    dto.put("github", user.getGithub());
-                    dto.put("score", app.getScore());
-                    dto.put("status", app.getStatus());
-                    dto.put("appliedAt", app.getAppliedAt());
-                    dto.put("applicationId", app.getId());
-                    dto.put("resume", user.getResume());
-                    return dto;
-                }).collect(Collectors.toList());
+                    dto.put("applicationId", result[0]);
+                    dto.put("score", result[1]);
+                    dto.put("status", result[2]);
+                    dto.put("appliedAt", result[3]);
+                    dto.put("userId", result[4]);
+                    dto.put("name", result[5]);
+                    dto.put("email", result[6]);
+                    dto.put("mobile", result[7]);
+                    dto.put("qualification", result[8]);
+                    dto.put("gender", result[9]);
+                    dto.put("dob", result[10]);
+                    dto.put("address", result[11]);
+                    dto.put("passoutYear", result[12]);
+                    dto.put("experience", result[13]);
+                    dto.put("linkedin", result[14]);
+                    dto.put("github", result[15]);
+                    dto.put("department", result[16]);
+                    dto.put("hasResume", result[17]);
+                    dto.put("hasProfilePicture", result[18]);
+                    dto.put("skills", new ArrayList<String>());
+
+                    applicants.add(dto);
+                }
             }
 
             System.out.println("Returning " + applicants.size() + " applicants for admin");
@@ -395,6 +349,43 @@ public class JobController {
             System.err.println("Error fetching applicants for admin: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching applicants: " + e.getMessage());
+        }
+    }
+
+    // NEW: Get resume for specific applicant (only when needed)
+    @GetMapping("/applicant/{applicationId}/resume")
+    public ResponseEntity<?> getApplicantResume(@PathVariable Long applicationId, HttpServletRequest request) {
+        System.out.println("Get resume for application: " + applicationId);
+
+        // Check if user is logged in
+        Employee emp = getEmployeeFromRequest(request);
+        if (emp == null && !isAdmin(request)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not logged in");
+        }
+
+        try {
+            Optional<Application> applicationOpt = applicationRepository.findById(applicationId);
+            if (applicationOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Application application = applicationOpt.get();
+            User user = application.getUser();
+
+            // Check permissions
+            Job job = application.getJob();
+            if (emp != null && !job.getPostedBy().getEmpId().equals(emp.getEmpId()) && !isAdmin(request)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You don't have permission to view this resume");
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("resume", user.getResume());
+            response.put("fileName", user.getName() + "_resume.pdf");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("Error fetching resume: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching resume");
         }
     }
 
@@ -422,26 +413,33 @@ public class JobController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You don't have permission to schedule interviews for this job");
             }
 
-            // Get all applications for this job with user data
-            List<Application> applications = applicationRepository.findApplicationsByJobIdWithUser(request.getJobId());
+            // Get all applications for this job using native query to avoid LOB issues
+            List<Object[]> applicationsData = applicationRepository.findApplicationsByJobIdNative(request.getJobId());
 
             List<Application> qualifiedApplications = new ArrayList<>();
             List<Application> nonQualifiedApplications = new ArrayList<>();
             List<Application> alreadyProcessedApplications = new ArrayList<>();
 
             // Determine qualified applicants based on job requirements
-            for (Application app : applications) {
-                // Skip already processed applications
-                if ("Interview Scheduled".equals(app.getStatus()) || "Rejected".equals(app.getStatus())) {
-                    alreadyProcessedApplications.add(app);
-                    continue;
-                }
+            for (Object[] appData : applicationsData) {
+                Long applicationId = (Long) appData[0];
+                Optional<Application> appOpt = applicationRepository.findById(applicationId);
 
-                User user = app.getUser();
-                if (isQualifiedApplicant(user, job)) {
-                    qualifiedApplications.add(app);
-                } else {
-                    nonQualifiedApplications.add(app);
+                if (appOpt.isPresent()) {
+                    Application app = appOpt.get();
+                    User user = app.getUser();
+
+                    // Skip already processed applications
+                    if ("Interview Scheduled".equals(app.getStatus()) || "Rejected".equals(app.getStatus())) {
+                        alreadyProcessedApplications.add(app);
+                        continue;
+                    }
+
+                    if (isQualifiedApplicant(user, job)) {
+                        qualifiedApplications.add(app);
+                    } else {
+                        nonQualifiedApplications.add(app);
+                    }
                 }
             }
 
@@ -593,6 +591,44 @@ public class JobController {
     public ResponseEntity<?> getJobByJobId(@PathVariable String jobId) {
         try {
             Optional<Job> jobOpt = jobRepo.findByJobId(jobId);
+            if (jobOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Job job = jobOpt.get();
+
+            // Create a simplified DTO for public view (optional)
+            Map<String, Object> publicJob = new HashMap<>();
+            publicJob.put("jobId", job.getJobId());
+            publicJob.put("title", job.getTitle());
+            publicJob.put("company", job.getCompany());
+            publicJob.put("location", job.getLocation());
+            publicJob.put("minSalary", job.getMinSalary());
+            publicJob.put("maxSalary", job.getMaxSalary());
+            publicJob.put("experience", job.getExperience());
+            publicJob.put("openings", job.getOpenings());
+            publicJob.put("openingDate", job.getOpeningDate());
+            publicJob.put("lastDate", job.getLastDate());
+            publicJob.put("jobType", job.getJobType());
+            publicJob.put("employmentType", job.getEmploymentType());
+            publicJob.put("department", job.getDepartment());
+            publicJob.put("mode", job.getMode());
+            publicJob.put("description", job.getDescription());
+            publicJob.put("requirements", job.getRequirements());
+            publicJob.put("perks", job.getPerks());
+            publicJob.put("contactEmail", job.getContactEmail());
+
+            return ResponseEntity.ok(publicJob);
+        } catch (Exception e) {
+            System.err.println("Error fetching job: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching job");
+        }
+    }
+
+    @GetMapping("/view-shortid/{shortId}")
+    public ResponseEntity<?> getJobByShortId(@PathVariable String shortId) {
+        try {
+            Optional<Job> jobOpt = jobRepo.findByShortId(shortId);
             if (jobOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }

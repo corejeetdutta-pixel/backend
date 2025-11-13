@@ -119,7 +119,7 @@ public class AdminController {
     
  // Add this to your AdminController.java
     @DeleteMapping("/users/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
+    public ResponseEntity<?> deleteUser(@PathVariable String userId) {
         try {
             Optional<User> userOptional = userRepo.findById(userId);
             if (userOptional.isEmpty()) {

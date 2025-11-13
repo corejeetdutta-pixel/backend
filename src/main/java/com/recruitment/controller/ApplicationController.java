@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.recruitment.dto.ApplicationRequest;
 import com.recruitment.dto.UserDto;
 import com.recruitment.entity.Application;
+import com.recruitment.entity.User;
 import com.recruitment.repository.ApplicationRepository;
 import com.recruitment.repository.JobRepository;
 import com.recruitment.repository.UserRepo;
@@ -32,7 +33,7 @@ public class ApplicationController {
 
     @Autowired
     private EmailService emailService;
-    
+
     @Autowired
     private ApplicationService applicationService;
 
@@ -75,25 +76,15 @@ public class ApplicationController {
             String employerEmail = job.getPostedBy().getEmail();
             System.out.println("apply part 2");
 
-            // Get full user details
+            // Get full user details - Use User entity directly instead of UserDto
             var userEntity = userRepository.findByUserId(request.getUserId()).orElseThrow();
-            var userDto = new UserDto();
-            userDto.setName(userEntity.getName());
-            userDto.setEmail(userEntity.getEmail());
-            userDto.setMobile(userEntity.getMobile());
-            userDto.setAddress(userEntity.getAddress());
-            userDto.setGender(userEntity.getGender());
-            userDto.setQualification(userEntity.getQualification());
-            userDto.setPassoutYear(userEntity.getPassoutYear());
-            userDto.setSkills(userEntity.getSkills());
-            userDto.setResume(userEntity.getResume());
             System.out.println("apply part 3");
 
-            // Send email to employer
+            // Send email to employer - Use the updated method that accepts User entity
             try {
                 emailService.sendApplicationEmail(
                         employerEmail,
-                        userDto,
+                        userEntity, // ✅ CHANGED: Pass User entity instead of UserDto
                         job.getTitle(),
                         job.getJobId(),
                         job.getDescription(),
@@ -101,6 +92,15 @@ public class ApplicationController {
                         request.getScore()
                 );
                 System.out.println("mail is triggered");
+
+                // ✅ ADDED: Send confirmation email to candidate
+                emailService.sendApplicationConfirmationToCandidate(
+                        userEntity.getEmail(),
+                        userEntity.getName(),
+                        job.getTitle(),
+                        job.getCompany() != null ? job.getCompany() : "the company"
+                );
+
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("exception part");
@@ -113,7 +113,7 @@ public class ApplicationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("❌ Error submitting application.");
         }
     }
-    
+
     @GetMapping("/employer/{empId}")
     public ResponseEntity<List<Application>> getEmployerApplications(@PathVariable String empId) {
         try {
