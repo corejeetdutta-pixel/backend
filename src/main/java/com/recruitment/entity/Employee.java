@@ -62,15 +62,10 @@ public class Employee implements Serializable {
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
-    @NotBlank(message = "Aadhar number is required")
-    @Pattern(regexp = "^\\d{12}$", message = "Aadhar number must be exactly 12 digits")
-    @Column(name = "aadhar_number", nullable = false, unique = true)
-    private String aadharNumber;
-
-    @NotBlank(message = "PAN number is required")
-    @Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]{1}$", message = "PAN number must be in format ABCDE1234F")
-    @Column(name = "pan_number", nullable = false, unique = true)
-    private String panNumber;
+    @NotBlank(message = "GST number is required")
+    @Pattern(regexp = "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", message = "GST number must be in valid format: 07AABCU9603R1ZM")
+    @Column(name = "gst_number", nullable = false, unique = true)
+    private String gstNumber;
 
     @Column(name = "profile_picture", columnDefinition = "TEXT")
     private String profilePicture;
@@ -124,14 +119,6 @@ public class Employee implements Serializable {
                 throw new IllegalArgumentException("Please provide a valid date of birth");
             }
         }
-
-        if (aadharNumber != null && aadharNumber.length() == 12) {
-            try {
-                Long.parseLong(aadharNumber);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Aadhar number must contain only digits");
-            }
-        }
     }
 
     // Constructors
@@ -139,7 +126,7 @@ public class Employee implements Serializable {
 
     public Employee(String name, String email, String password, String mobile,
                     String address, String gender, LocalDate dateOfBirth,
-                    String aadharNumber, String panNumber, Boolean agreedToTerms) {
+                    String gstNumber, Boolean agreedToTerms) {
         this.name = name;
         this.email = email;
         this.password = password;
@@ -147,8 +134,7 @@ public class Employee implements Serializable {
         this.address = address;
         this.gender = gender;
         this.dateOfBirth = dateOfBirth;
-        this.aadharNumber = aadharNumber;
-        this.panNumber = panNumber;
+        this.gstNumber = gstNumber;
         this.agreedToTerms = agreedToTerms != null ? agreedToTerms : false;
     }
 
@@ -183,11 +169,8 @@ public class Employee implements Serializable {
     public LocalDate getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
-    public String getAadharNumber() { return aadharNumber; }
-    public void setAadharNumber(String aadharNumber) { this.aadharNumber = aadharNumber; }
-
-    public String getPanNumber() { return panNumber; }
-    public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
+    public String getGstNumber() { return gstNumber; }
+    public void setGstNumber(String gstNumber) { this.gstNumber = gstNumber; }
 
     public String getProfilePicture() { return profilePicture; }
     public void setProfilePicture(String profilePicture) { this.profilePicture = profilePicture; }

@@ -63,6 +63,11 @@ public class EmployeeController {
             "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
     );
 
+    // ✅ GST number regex pattern
+    private static final Pattern GST_PATTERN = Pattern.compile(
+            "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$"
+    );
+
     // ============================
     // REGISTER EMPLOYEE (Enhanced with DTO validation)
     // ============================
@@ -86,7 +91,15 @@ public class EmployeeController {
             if (repo.existsByEmail(employeeDto.getEmail())) {
                 System.out.println("❌ Email already registered: " + employeeDto.getEmail());
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("email", "Email already registered")
+                        Collections.singletonMap("email", "Email already registered")
+                );
+            }
+
+            // Check if GST number already exists
+            if (repo.existsByGstNumber(employeeDto.getGstNumber().toUpperCase())) {
+                System.out.println("❌ GST number already registered: " + employeeDto.getGstNumber());
+                return ResponseEntity.badRequest().body(
+                        Collections.singletonMap("gstNumber", "GST number already registered. Please use a different GST number.")
                 );
             }
 
@@ -94,7 +107,15 @@ public class EmployeeController {
             if (!systemEmpKey.equals(employeeDto.getRegistrationKey())) {
                 System.out.println("❌ Invalid registration key provided");
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("registrationKey", "Invalid registration key. Please provide the correct registration key.")
+                        Collections.singletonMap("registrationKey", "Invalid registration key. Please provide the correct registration key.")
+                );
+            }
+
+            // Validate GST number format
+            if (!GST_PATTERN.matcher(employeeDto.getGstNumber().toUpperCase()).matches()) {
+                System.out.println("❌ Invalid GST number format: " + employeeDto.getGstNumber());
+                return ResponseEntity.badRequest().body(
+                        Collections.singletonMap("gstNumber", "Invalid GST number format. Please provide a valid GST number.")
                 );
             }
 
@@ -103,12 +124,12 @@ public class EmployeeController {
                 int age = java.time.Period.between(employeeDto.getDateOfBirth(), LocalDate.now()).getYears();
                 if (age < 18) {
                     return ResponseEntity.badRequest().body(
-                        Collections.singletonMap("dateOfBirth", "Employee must be at least 18 years old")
+                            Collections.singletonMap("dateOfBirth", "Employee must be at least 18 years old")
                     );
                 }
                 if (age > 100) {
                     return ResponseEntity.badRequest().body(
-                        Collections.singletonMap("dateOfBirth", "Please provide a valid date of birth")
+                            Collections.singletonMap("dateOfBirth", "Please provide a valid date of birth")
                     );
                 }
             }
@@ -121,8 +142,7 @@ public class EmployeeController {
             emp.setAddress(employeeDto.getAddress().trim());
             emp.setGender(employeeDto.getGender());
             emp.setDateOfBirth(employeeDto.getDateOfBirth());
-            emp.setAadharNumber(employeeDto.getAadharNumber().trim());
-            emp.setPanNumber(employeeDto.getPanNumber().trim().toUpperCase());
+            emp.setGstNumber(employeeDto.getGstNumber().trim().toUpperCase());
             emp.setPassword(passwordEncoder.encode(employeeDto.getPassword()));
             emp.setAgreedToTerms(employeeDto.getAgreedToTerms());
             emp.setRole("EMPLOYER");
@@ -133,7 +153,7 @@ public class EmployeeController {
                 emp.validate();
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("validationError", e.getMessage())
+                        Collections.singletonMap("validationError", e.getMessage())
                 );
             }
 
@@ -146,7 +166,7 @@ public class EmployeeController {
                 System.err.println("❌ Database error while saving employee: " + e.getMessage());
                 if (e.getMessage().contains("null value in column") && e.getMessage().contains("id")) {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(Collections.singletonMap("error", "Database configuration error. Please contact administrator."));
+                            .body(Collections.singletonMap("error", "Database configuration error. Please contact administrator."));
                 }
                 throw e;
             }
@@ -169,7 +189,7 @@ public class EmployeeController {
 
             // Use dynamic frontend URL (from first class)
             String verificationUrl = frontendUrl + "/verify-employee?token=" + token;
-            
+
             try {
                 emailService.sendVerificationEmail(emp.getEmail(), emp.getName(), verificationUrl,EmailService.EmailType.EMPLOYEE_VERIFICATION);
                 System.out.println("✅ Verification email sent to: " + emp.getEmail());
@@ -184,14 +204,14 @@ public class EmployeeController {
             response.put("message", "Registration successful. Please check your email to verify your account.");
             response.put("empId", savedEmp.getEmpId());
             response.put("email", savedEmp.getEmail());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             System.err.println("❌ Employee registration error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Registration failed. Please try again."));
+                    .body(Collections.singletonMap("error", "Registration failed. Please try again."));
         }
     }
 
@@ -204,26 +224,26 @@ public class EmployeeController {
             String email = (String) loginRequest.get("email");
             String password = (String) loginRequest.get("password");
             Object empIdObj = loginRequest.get("empId");
-            
+
             // Input validation
             if (email == null || email.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Email is required")
+                        Collections.singletonMap("error", "Email is required")
                 );
             }
             if (password == null || password.isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Password is required")
+                        Collections.singletonMap("error", "Password is required")
                 );
             }
             if (empIdObj == null) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Employee ID is required")
+                        Collections.singletonMap("error", "Employee ID is required")
                 );
             }
-            
+
             String empId = empIdObj.toString().trim().replaceAll("^\"|\"$", "");
-            
+
             System.out.println("Employee login attempt - Email: " + email + ", EmpId: " + empId);
 
             // Find employee by email
@@ -231,62 +251,62 @@ public class EmployeeController {
             if (employeeOptional.isEmpty()) {
                 System.out.println("❌ Employee not found with email: " + email);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Invalid credentials")
+                        Collections.singletonMap("error", "Invalid credentials")
                 );
             }
-            
+
             final Employee existingEmp = employeeOptional.get();
-            
+
             // Verify EmpId matches
             if (!existingEmp.getEmpId().equals(empId)) {
                 System.out.println("❌ EmpId mismatch. Expected: " + existingEmp.getEmpId() + ", Received: " + empId);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Invalid credentials")
+                        Collections.singletonMap("error", "Invalid credentials")
                 );
             }
-            
+
             // Authenticate using Spring Security (from first class)
             try {
                 authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, password)
+                        new UsernamePasswordAuthenticationToken(email, password)
                 );
             } catch (Exception e) {
                 System.err.println("Authentication failed: " + e.getMessage());
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Invalid credentials")
+                        Collections.singletonMap("error", "Invalid credentials")
                 );
             }
-            
+
             System.out.println("✅ Authentication successful for: " + existingEmp.getName());
-            
+
             // Check if email is verified (from first class)
             if (!existingEmp.isVerified()) {
                 System.out.println("❌ Email not verified for: " + existingEmp.getEmail());
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Email not verified. Please check your email for verification link.")
+                        Collections.singletonMap("error", "Email not verified. Please check your email for verification link.")
                 );
             }
-            
+
             // Load user details and generate JWT token (from first class)
             final UserDetails userDetails = userDetailsService.loadUserByUsername(email);
             final String jwt = jwtUtil.generateToken(userDetails, existingEmp.getEmpId(), "EMPLOYEE");
-            
+
             // Send login email notification
             emailService.sendLoginNotification(existingEmp.getEmail(), existingEmp.getName(), EmailService.EmailType.EMPLOYEE_VERIFICATION);
-            
+
             // Create response (exclude sensitive data)
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Login successful");
             response.put("token", jwt);
             response.put("user", createSafeEmployeeResponse(existingEmp));
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             System.err.println("Login error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                Collections.singletonMap("error", "Invalid credentials")
+                    Collections.singletonMap("error", "Invalid credentials")
             );
         }
     }
@@ -299,7 +319,7 @@ public class EmployeeController {
         try {
             System.out.println("=== EMPLOYEE EMAIL VERIFICATION STARTED ===");
             System.out.println("Received token: " + token);
-            
+
             Optional<VerificationToken> opt = tokenRepo.findByToken(token);
             if (opt.isEmpty()) {
                 System.out.println("❌ Invalid verification token. Token not found in database.");
@@ -307,9 +327,9 @@ public class EmployeeController {
             }
 
             VerificationToken vt = opt.get();
-            System.out.println("✅ Token found for employee: " + 
-                             (vt.getEmployee() != null ? vt.getEmployee().getEmail() : "null"));
-            
+            System.out.println("✅ Token found for employee: " +
+                    (vt.getEmployee() != null ? vt.getEmployee().getEmail() : "null"));
+
             if (vt.getExpiryDate().isBefore(LocalDateTime.now())) {
                 System.out.println("❌ Token expired");
                 return ResponseEntity.badRequest().body(Map.of("message", "Verification token has expired."));
@@ -326,22 +346,22 @@ public class EmployeeController {
                 System.out.println("❌ Employee not found for token");
                 return ResponseEntity.badRequest().body(Map.of("message", "Employee not found for this token."));
             }
-            
+
             employee.setVerified(true);
             repo.save(employee);
-            
+
             // Update token status
             vt.setVerified(true);
             tokenRepo.save(vt);
 
             System.out.println("🎉 Employee email verified successfully for: " + employee.getEmail());
             return ResponseEntity.ok(Map.of("message", "Email verified successfully! You can now login."));
-            
+
         } catch (Exception e) {
             System.err.println("❌ Employee email verification error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("message", "Email verification failed. Please try again."));
+                    .body(Map.of("message", "Email verification failed. Please try again."));
         }
     }
 
@@ -353,30 +373,30 @@ public class EmployeeController {
         try {
             System.out.println("=== RESEND VERIFICATION FOR EMPLOYEE ===");
             System.out.println("Email: " + email);
-            
+
             Optional<Employee> employeeOpt = repo.findByEmail(email.trim().toLowerCase());
             if (employeeOpt.isEmpty()) {
                 System.out.println("❌ Employee not found: " + email);
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "No employee found with this email")
+                        Collections.singletonMap("error", "No employee found with this email")
                 );
             }
 
             Employee employee = employeeOpt.get();
-            
+
             if (employee.isVerified()) {
                 System.out.println("ℹ️ Employee already verified: " + email);
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Email is already verified")
+                        Collections.singletonMap("error", "Email is already verified")
                 );
             }
 
             // Check if token exists and is still valid
             Optional<VerificationToken> existingTokenOpt = tokenRepo.findByEmployee(employee);
             VerificationToken verificationToken;
-            
-            if (existingTokenOpt.isPresent() && 
-                existingTokenOpt.get().getExpiryDate().isAfter(LocalDateTime.now())) {
+
+            if (existingTokenOpt.isPresent() &&
+                    existingTokenOpt.get().getExpiryDate().isAfter(LocalDateTime.now())) {
                 // Use existing token if still valid
                 verificationToken = existingTokenOpt.get();
                 System.out.println("✅ Using existing valid token");
@@ -386,7 +406,7 @@ public class EmployeeController {
                     // Remove expired token
                     tokenRepo.delete(existingTokenOpt.get());
                 }
-                
+
                 String newToken = UUID.randomUUID().toString();
                 verificationToken = new VerificationToken();
                 verificationToken.setToken(newToken);
@@ -400,17 +420,17 @@ public class EmployeeController {
             // Send verification email using frontend URL
             String verificationUrl = frontendUrl + "/verify-employee?token=" + verificationToken.getToken();
             emailService.sendVerificationEmail(employee.getEmail(), employee.getName(), verificationUrl);
-            
+
             System.out.println("✅ Verification email resent to: " + employee.getEmail());
             return ResponseEntity.ok(
-                Collections.singletonMap("message", "Verification email sent successfully. Please check your inbox.")
+                    Collections.singletonMap("message", "Verification email sent successfully. Please check your inbox.")
             );
-            
+
         } catch (Exception e) {
             System.err.println("❌ Resend verification error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Failed to resend verification email"));
+                    .body(Collections.singletonMap("error", "Failed to resend verification email"));
         }
     }
 
@@ -422,26 +442,26 @@ public class EmployeeController {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Authorization header missing or invalid")
+                        Collections.singletonMap("error", "Authorization header missing or invalid")
                 );
             }
-            
+
             String jwt = authHeader.substring(7);
             String email = jwtUtil.extractUsername(jwt);
-            
+
             Optional<Employee> emp = repo.findByEmail(email);
             if (emp.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Employee not found")
+                        Collections.singletonMap("error", "Employee not found")
                 );
             }
-            
+
             return ResponseEntity.ok(createSafeEmployeeResponse(emp.get()));
-            
+
         } catch (Exception e) {
             System.err.println("Current employee error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                Collections.singletonMap("error", "Invalid token")
+                    Collections.singletonMap("error", "Invalid token")
             );
         }
     }
@@ -456,36 +476,36 @@ public class EmployeeController {
         try {
             System.out.println("=== RETRIEVE EMPLOYEE ID ===");
             System.out.println("Email: " + email);
-            
+
             if (email == null || email.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Email is required")
+                        Collections.singletonMap("error", "Email is required")
                 );
             }
-            
+
             Optional<Employee> employeeOpt = repo.findByEmail(email.trim().toLowerCase());
             if (employeeOpt.isEmpty()) {
                 System.out.println("❌ Employee not found with email: " + email);
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "No employee found with this email address")
+                        Collections.singletonMap("error", "No employee found with this email address")
                 );
             }
 
             Employee employee = employeeOpt.get();
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("empId", employee.getEmpId());
             response.put("message", "Employee ID retrieved successfully");
             response.put("name", employee.getName());
-            
+
             System.out.println("✅ Employee ID retrieved: " + employee.getEmpId());
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             System.err.println("❌ Retrieve Employee ID error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Failed to retrieve Employee ID"));
+                    .body(Collections.singletonMap("error", "Failed to retrieve Employee ID"));
         }
     }
 
@@ -495,27 +515,27 @@ public class EmployeeController {
         try {
             System.out.println("=== FORGOT PASSWORD REQUEST ===");
             System.out.println("Email: " + email);
-            
+
             if (email == null || email.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Email is required")
+                        Collections.singletonMap("error", "Email is required")
                 );
             }
-            
+
             Optional<Employee> employeeOpt = repo.findByEmail(email.trim().toLowerCase());
             if (employeeOpt.isEmpty()) {
                 // Don't reveal whether email exists or not for security
                 System.out.println("ℹ️ Password reset request for non-existent email: " + email);
                 return ResponseEntity.ok(
-                    Collections.singletonMap("message", "If an account with this email exists, a password reset link has been sent")
+                        Collections.singletonMap("message", "If an account with this email exists, a password reset link has been sent")
                 );
             }
 
             Employee employee = employeeOpt.get();
-            
+
             // Generate reset token
             String resetToken = UUID.randomUUID().toString();
-            
+
             // Create verification token for password reset
             VerificationToken resetVerificationToken = new VerificationToken();
             resetVerificationToken.setToken(resetToken);
@@ -523,126 +543,126 @@ public class EmployeeController {
             resetVerificationToken.setExpiryDate(LocalDateTime.now().plusHours(2)); // 2 hours for password reset
             resetVerificationToken.setVerified(false);
             tokenRepo.save(resetVerificationToken);
-            
+
             String resetUrl = frontendUrl + "/reset-password?token=" + resetToken;
-            
+
             // Send password reset email
             // emailService.sendPasswordResetEmail(employee.getEmail(), employee.getName(), resetUrl);
-            
+
             System.out.println("✅ Password reset email sent to: " + employee.getEmail());
             return ResponseEntity.ok(
-                Collections.singletonMap("message", "If an account with this email exists, a password reset link has been sent")
+                    Collections.singletonMap("message", "If an account with this email exists, a password reset link has been sent")
             );
-            
+
         } catch (Exception e) {
             System.err.println("❌ Forgot password error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Failed to process password reset request"));
+                    .body(Collections.singletonMap("error", "Failed to process password reset request"));
         }
     }
 
     // ✅ Reset Password with Token
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestParam String token, 
-                                         @RequestBody Map<String, String> passwordData) {
+    public ResponseEntity<?> resetPassword(@RequestParam String token,
+                                           @RequestBody Map<String, String> passwordData) {
         try {
             System.out.println("=== PASSWORD RESET ATTEMPT ===");
             System.out.println("Token: " + token);
-            
+
             String newPassword = passwordData.get("newPassword");
             String confirmPassword = passwordData.get("confirmPassword");
-            
+
             if (newPassword == null || newPassword.isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "New password is required")
+                        Collections.singletonMap("error", "New password is required")
                 );
             }
-            
+
             if (confirmPassword == null || confirmPassword.isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Confirm password is required")
+                        Collections.singletonMap("error", "Confirm password is required")
                 );
             }
-            
+
             if (!newPassword.equals(confirmPassword)) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Passwords do not match")
+                        Collections.singletonMap("error", "Passwords do not match")
                 );
             }
-            
+
             // Validate password strength using the pattern from first class
             if (!PASSWORD_PATTERN.matcher(newPassword).matches()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Password must be at least 8 characters with uppercase, lowercase, number and special character")
+                        Collections.singletonMap("error", "Password must be at least 8 characters with uppercase, lowercase, number and special character")
                 );
             }
-            
+
             Optional<VerificationToken> tokenOpt = tokenRepo.findByToken(token);
             if (tokenOpt.isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Invalid or expired reset token")
+                        Collections.singletonMap("error", "Invalid or expired reset token")
                 );
             }
-            
+
             VerificationToken resetToken = tokenOpt.get();
-            
+
             if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Password reset token has expired")
+                        Collections.singletonMap("error", "Password reset token has expired")
                 );
             }
-            
+
             Employee employee = resetToken.getEmployee();
             if (employee == null) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Employee not found for this token")
+                        Collections.singletonMap("error", "Employee not found for this token")
                 );
             }
-            
+
             // Update password
             employee.setPassword(passwordEncoder.encode(newPassword));
             repo.save(employee);
-            
+
             // Delete the used token
             tokenRepo.delete(resetToken);
-            
+
             System.out.println("✅ Password reset successfully for: " + employee.getEmail());
             return ResponseEntity.ok(
-                Collections.singletonMap("message", "Password reset successfully. You can now login with your new password.")
+                    Collections.singletonMap("message", "Password reset successfully. You can now login with your new password.")
             );
-            
+
         } catch (Exception e) {
             System.err.println("❌ Reset password error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Password reset failed. Please try again."));
+                    .body(Collections.singletonMap("error", "Password reset failed. Please try again."));
         }
     }
 
     // ✅ Update Employee Profile
     @PutMapping("/update-profile")
     public ResponseEntity<?> updateProfile(@RequestHeader("Authorization") String authHeader,
-                                         @RequestBody Map<String, Object> updateData) {
+                                           @RequestBody Map<String, Object> updateData) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Authorization header missing or invalid")
+                        Collections.singletonMap("error", "Authorization header missing or invalid")
                 );
             }
-            
+
             String jwt = authHeader.substring(7);
             String email = jwtUtil.extractUsername(jwt);
-            
+
             Optional<Employee> employeeOptional = repo.findByEmail(email);
             if (employeeOptional.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Employee not found")
+                        Collections.singletonMap("error", "Employee not found")
                 );
             }
-            
+
             Employee employee = employeeOptional.get();
-            
+
             // Update allowed fields with validation
             if (updateData.containsKey("name")) {
                 String name = (String) updateData.get("name");
@@ -650,151 +670,151 @@ public class EmployeeController {
                     employee.setName(name.trim());
                 } else {
                     return ResponseEntity.badRequest().body(
-                        Collections.singletonMap("error", "Name must be between 2 and 50 characters")
+                            Collections.singletonMap("error", "Name must be between 2 and 50 characters")
                     );
                 }
             }
-            
+
             if (updateData.containsKey("mobile")) {
                 String mobile = (String) updateData.get("mobile");
                 if (mobile != null && mobile.matches("^[6-9]\\d{9}$")) {
                     employee.setMobile(mobile.trim());
                 } else {
                     return ResponseEntity.badRequest().body(
-                        Collections.singletonMap("error", "Please provide a valid 10-digit mobile number")
+                            Collections.singletonMap("error", "Please provide a valid 10-digit mobile number")
                     );
                 }
             }
-            
+
             if (updateData.containsKey("address")) {
                 String address = (String) updateData.get("address");
                 if (address != null && address.length() >= 10 && address.length() <= 500) {
                     employee.setAddress(address.trim());
                 } else {
                     return ResponseEntity.badRequest().body(
-                        Collections.singletonMap("error", "Address must be between 10 and 500 characters")
+                            Collections.singletonMap("error", "Address must be between 10 and 500 characters")
                     );
                 }
             }
-            
+
             if (updateData.containsKey("gender")) {
                 String gender = (String) updateData.get("gender");
                 if (gender != null && gender.matches("^(MALE|FEMALE|OTHER)$")) {
                     employee.setGender(gender);
                 } else {
                     return ResponseEntity.badRequest().body(
-                        Collections.singletonMap("error", "Gender must be MALE, FEMALE, or OTHER")
+                            Collections.singletonMap("error", "Gender must be MALE, FEMALE, or OTHER")
                     );
                 }
             }
-            
+
             if (updateData.containsKey("profilePicture")) {
                 String profilePicture = (String) updateData.get("profilePicture");
                 if (profilePicture != null && profilePicture.length() > 0) {
                     employee.setProfilePicture(profilePicture);
                 }
             }
-            
+
             // Perform entity validation
             try {
                 employee.validate();
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", e.getMessage())
+                        Collections.singletonMap("error", e.getMessage())
                 );
             }
-            
+
             Employee updatedEmployee = repo.save(employee);
             return ResponseEntity.ok(createSafeEmployeeResponse(updatedEmployee));
-            
+
         } catch (Exception e) {
             System.err.println("Update profile error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Profile update failed. Please try again."));
+                    .body(Collections.singletonMap("error", "Profile update failed. Please try again."));
         }
     }
 
     // ✅ Change Password
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(@RequestHeader("Authorization") String authHeader,
-                                          @RequestBody Map<String, String> passwordData) {
+                                            @RequestBody Map<String, String> passwordData) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Authorization header missing or invalid")
+                        Collections.singletonMap("error", "Authorization header missing or invalid")
                 );
             }
-            
+
             String jwt = authHeader.substring(7);
             String email = jwtUtil.extractUsername(jwt);
-            
+
             Optional<Employee> employeeOptional = repo.findByEmail(email);
             if (employeeOptional.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Employee not found")
+                        Collections.singletonMap("error", "Employee not found")
                 );
             }
-            
+
             Employee employee = employeeOptional.get();
             String currentPassword = passwordData.get("currentPassword");
             String newPassword = passwordData.get("newPassword");
             String confirmPassword = passwordData.get("confirmPassword");
-            
+
             if (currentPassword == null || currentPassword.isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Current password is required")
+                        Collections.singletonMap("error", "Current password is required")
                 );
             }
-            
+
             if (newPassword == null || newPassword.isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "New password is required")
+                        Collections.singletonMap("error", "New password is required")
                 );
             }
-            
+
             if (confirmPassword == null || confirmPassword.isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Confirm password is required")
+                        Collections.singletonMap("error", "Confirm password is required")
                 );
             }
-            
+
             if (!newPassword.equals(confirmPassword)) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "New password and confirm password do not match")
+                        Collections.singletonMap("error", "New password and confirm password do not match")
                 );
             }
-            
+
             // Verify current password
             if (!passwordEncoder.matches(currentPassword, employee.getPassword())) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    Collections.singletonMap("error", "Current password is incorrect")
+                        Collections.singletonMap("error", "Current password is incorrect")
                 );
             }
-            
+
             // Validate new password strength using pattern from first class
             if (!PASSWORD_PATTERN.matcher(newPassword).matches()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "New password must be at least 8 characters with uppercase, lowercase, number and special character")
+                        Collections.singletonMap("error", "New password must be at least 8 characters with uppercase, lowercase, number and special character")
                 );
             }
-            
+
             // Update password
             employee.setPassword(passwordEncoder.encode(newPassword));
             repo.save(employee);
-            
+
             // Send password change notification email
             // emailService.sendPasswordChangeNotification(employee.getEmail(), employee.getName());
-            
+
             return ResponseEntity.ok(
-                Collections.singletonMap("message", "Password updated successfully")
+                    Collections.singletonMap("message", "Password updated successfully")
             );
-            
+
         } catch (Exception e) {
             System.err.println("Change password error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Password change failed. Please try again."));
+                    .body(Collections.singletonMap("error", "Password change failed. Please try again."));
         }
     }
 
@@ -804,21 +824,21 @@ public class EmployeeController {
         try {
             if (email == null || email.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(
-                    Collections.singletonMap("error", "Email is required")
+                        Collections.singletonMap("error", "Email is required")
                 );
             }
-            
+
             boolean exists = repo.existsByEmail(email.trim().toLowerCase());
             Map<String, Object> response = new HashMap<>();
             response.put("email", email);
             response.put("exists", exists);
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             System.err.println("Check email error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Failed to check email"));
+                    .body(Collections.singletonMap("error", "Failed to check email"));
         }
     }
 
@@ -833,16 +853,16 @@ public class EmployeeController {
             Optional<Employee> employeeOpt = repo.findById(id);
             if (employeeOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    Collections.singletonMap("error", "Employee not found")
+                        Collections.singletonMap("error", "Employee not found")
                 );
             }
-            
+
             return ResponseEntity.ok(createSafeEmployeeResponse(employeeOpt.get()));
-            
+
         } catch (Exception e) {
             System.err.println("Get employee by ID error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Failed to retrieve employee"));
+                    .body(Collections.singletonMap("error", "Failed to retrieve employee"));
         }
     }
 
@@ -852,15 +872,15 @@ public class EmployeeController {
         try {
             List<Employee> employees = repo.findAll();
             List<Map<String, Object>> safeEmployees = employees.stream()
-                .map(this::createSafeEmployeeResponse)
-                .collect(Collectors.toList());
-            
+                    .map(this::createSafeEmployeeResponse)
+                    .collect(Collectors.toList());
+
             return ResponseEntity.ok(safeEmployees);
-            
+
         } catch (Exception e) {
             System.err.println("Get all employees error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Failed to retrieve employees"));
+                    .body(Collections.singletonMap("error", "Failed to retrieve employees"));
         }
     }
 
@@ -871,19 +891,19 @@ public class EmployeeController {
             Optional<Employee> employeeOpt = repo.findById(id);
             if (employeeOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    Collections.singletonMap("error", "Employee not found")
+                        Collections.singletonMap("error", "Employee not found")
                 );
             }
-            
+
             repo.deleteById(id);
             return ResponseEntity.ok(
-                Collections.singletonMap("message", "Employee deleted successfully")
+                    Collections.singletonMap("message", "Employee deleted successfully")
             );
-            
+
         } catch (Exception e) {
             System.err.println("Delete employee error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Failed to delete employee"));
+                    .body(Collections.singletonMap("error", "Failed to delete employee"));
         }
     }
 
@@ -894,22 +914,22 @@ public class EmployeeController {
             Optional<Employee> employeeOpt = repo.findById(id);
             if (employeeOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    Collections.singletonMap("error", "Employee not found")
+                        Collections.singletonMap("error", "Employee not found")
                 );
             }
-            
+
             Employee employee = employeeOpt.get();
             employee.setVerified(true);
             repo.save(employee);
-            
+
             return ResponseEntity.ok(
-                Collections.singletonMap("message", "Employee verified successfully")
+                    Collections.singletonMap("message", "Employee verified successfully")
             );
-            
+
         } catch (Exception e) {
             System.err.println("Verify employee error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Failed to verify employee"));
+                    .body(Collections.singletonMap("error", "Failed to verify employee"));
         }
     }
 
@@ -919,7 +939,7 @@ public class EmployeeController {
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
         return ResponseEntity.ok(
-            Collections.singletonMap("message", "Logged out successfully")
+                Collections.singletonMap("message", "Logged out successfully")
         );
     }
 
@@ -938,8 +958,7 @@ public class EmployeeController {
         safeEmployee.put("address", employee.getAddress());
         safeEmployee.put("gender", employee.getGender());
         safeEmployee.put("dateOfBirth", employee.getDateOfBirth());
-        safeEmployee.put("aadharNumber", employee.getAadharNumber());
-        safeEmployee.put("panNumber", employee.getPanNumber());
+        safeEmployee.put("gstNumber", employee.getGstNumber());
         safeEmployee.put("role", employee.getRole());
         safeEmployee.put("verified", employee.isVerified());
         safeEmployee.put("profilePicture", employee.getProfilePicture());

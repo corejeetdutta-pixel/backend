@@ -1,5 +1,6 @@
 package com.recruitment.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.recruitment.dto.UserDto;
 import com.recruitment.entity.User;
 import com.recruitment.repository.UserRepo;
@@ -8,6 +9,7 @@ import com.recruitment.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,6 +17,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -42,7 +45,6 @@ public class UserController {
     @Autowired
     private com.recruitment.service.CustomUserDetailsService userDetailsService;
 
-    // ✅ Frontend URL injected from application.properties
     @Value("${spring.mail.frontendUrl:http://localhost:5173}")
     private String frontendUrl;
 
@@ -51,15 +53,21 @@ public class UserController {
     );
 
     // ============================
-    // REGISTER
+    // REGISTER USER WITH RESUME
     // ============================
-    @PostMapping("/register")
+    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Transactional
-    public ResponseEntity<?> register(@RequestBody UserDto dto) {
+    public ResponseEntity<?> register(
+            @RequestPart("user") String userJson,
+            @RequestPart("resume") MultipartFile resumeFile) {
         try {
             System.out.println("=== USER REGISTRATION STARTED ===");
-            System.out.println("Email: " + dto.getEmail());
+            System.out.println("Resume file: " + (resumeFile != null ? resumeFile.getOriginalFilename() + " (" + resumeFile.getSize() + " bytes)" : "No file"));
 
+            ObjectMapper mapper = new ObjectMapper();
+            UserDto dto = mapper.readValue(userJson, UserDto.class);
+
+            // Validation
             if (repo.existsByEmail(dto.getEmail())) {
                 return ResponseEntity.badRequest().body(Map.of("message", "Email already registered"));
             }
@@ -70,6 +78,20 @@ public class UserController {
                 ));
             }
 
+            // Resume validation
+            if (resumeFile == null || resumeFile.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Resume file is required"));
+            }
+
+            if (!resumeFile.getContentType().equals("application/pdf")) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Resume must be a PDF file"));
+            }
+
+            if (resumeFile.getSize() > 5 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Resume file size must be less than 5MB"));
+            }
+
+            // Create user entity
             User user = new User();
             user.setName(dto.getName());
             user.setEmail(dto.getEmail());
@@ -81,7 +103,6 @@ public class UserController {
             user.setPassoutYear(dto.getPassoutYear());
             user.setSkills(dto.getSkills() != null ? dto.getSkills() : new ArrayList<>());
             user.setProfilePicture(dto.getProfilePicture());
-            user.setResume(dto.getResume());
             user.setDob(dto.getDob());
             user.setExperience(dto.getExperience());
             user.setLinkedin(dto.getLinkedin());
@@ -89,6 +110,12 @@ public class UserController {
             user.setRole("USER");
             user.setUserId(UUID.randomUUID().toString());
 
+            // Save resume file as bytes (PDF) with metadata
+            user.setResume(resumeFile.getBytes());
+            user.setResumeContentType(resumeFile.getContentType());
+            user.setResumeFileName(resumeFile.getOriginalFilename());
+
+            // Email verification setup
             String verificationToken = UUID.randomUUID().toString();
             user.setVerificationToken(verificationToken);
             user.setTokenExpiryDate(LocalDateTime.now().plusHours(24));
@@ -96,20 +123,86 @@ public class UserController {
 
             repo.save(user);
 
-            // ✅ Use frontend URL dynamically
+            // Send verification email
             String verificationUrl = frontendUrl + "/verify-email?token=" + verificationToken;
-            emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl, EmailService.EmailType.USER_VERIFICATION);
+            emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl);
 
-            System.out.println("✅ Verification email sent to: " + user.getEmail());
-            System.out.println("✅ Verification URL: " + verificationUrl);
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "User registered successfully. Please check your email for verification."
-            ));
+            System.out.println("✅ User registered successfully with resume: " + resumeFile.getOriginalFilename());
+            return ResponseEntity.ok(Map.of("message", "User registered successfully. Please verify your email."));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Registration failed. Please try again."));
+                    .body(Map.of("message", "Registration failed: " + e.getMessage()));
+        }
+    }
+
+    // ============================
+    // GET RESUME
+    // ============================
+    @GetMapping("/{userId}/resume")
+    public ResponseEntity<byte[]> getResume(@PathVariable String userId) {
+        try {
+            Optional<User> userOptional = repo.findByUserId(userId);
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            User user = userOptional.get();
+            if (user.getResume() == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(user.getResumeContentType()))
+                    .header("Content-Disposition", "attachment; filename=\"" + user.getResumeFileName() + "\"")
+                    .body(user.getResume());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // ============================
+    // UPDATE RESUME ONLY
+    // ============================
+    @PutMapping(value = "/{userId}/resume", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateResume(
+            @PathVariable String userId,
+            @RequestPart("resume") MultipartFile resumeFile) {
+        try {
+            Optional<User> userOptional = repo.findByUserId(userId);
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
+            }
+
+            // Resume validation
+            if (resumeFile == null || resumeFile.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Resume file is required"));
+            }
+
+            if (!resumeFile.getContentType().equals("application/pdf")) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Resume must be a PDF file"));
+            }
+
+            if (resumeFile.getSize() > 5 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Resume file size must be less than 5MB"));
+            }
+
+            User user = userOptional.get();
+
+            // Update only resume fields
+            user.setResume(resumeFile.getBytes());
+            user.setResumeContentType(resumeFile.getContentType());
+            user.setResumeFileName(resumeFile.getOriginalFilename());
+
+            repo.save(user);
+
+            System.out.println("✅ Resume updated successfully for user: " + userId);
+            return ResponseEntity.ok(Map.of("message", "Resume updated successfully"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Resume update failed: " + e.getMessage()));
         }
     }
 
@@ -175,7 +268,7 @@ public class UserController {
             repo.save(user);
 
             String verificationUrl = frontendUrl + "/verify-email?token=" + newToken;
-            emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl, EmailService.EmailType.USER_VERIFICATION);
+            emailService.sendVerificationEmail(user.getEmail(), user.getName(), verificationUrl);
 
             System.out.println("✅ Verification email resent to: " + user.getEmail());
             System.out.println("✅ Verification URL: " + verificationUrl);
