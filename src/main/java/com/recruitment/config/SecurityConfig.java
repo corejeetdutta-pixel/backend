@@ -49,7 +49,8 @@ public class SecurityConfig {
         "/api/jobs/view/**",
             "/api/jobs/view-shortid/**",
         "/api/jobs/filter",
-        "/api/public/**"
+        "/api/public/**",
+        "/sitemap-jobs.xml"
     };
 
     @Bean

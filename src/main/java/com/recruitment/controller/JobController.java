@@ -8,6 +8,8 @@ import java.util.Optional;
 import java.util.regex.*;
 import java.util.stream.Collectors;
 
+import com.recruitment.dto.JobWithSchemaResponse;
+import com.recruitment.util.jobSchemaGenerator;
 import com.recruitment.service.ApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -205,6 +207,26 @@ public class JobController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ArrayList<>());
         }
     }
+
+    /*@GetMapping("/all")
+    public ResponseEntity<List<JobWithSchemaResponse>> getAllJobs() {
+        try {
+            List<Job> jobs = jobRepo.findAll();
+
+            List<JobWithSchemaResponse> jobResponses = jobs.stream()
+                    .map(job -> {
+                        String schema = jobSchemaGenerator.generateJobPostingSchema(job);
+                        return new JobWithSchemaResponse(job, schema);
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(jobResponses);
+
+        } catch (Exception e) {
+            System.err.println("Error fetching all jobs: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ArrayList<>());
+        }
+    }*/
 
     // New endpoint for admin to get all jobs
     @GetMapping("/admin/all-jobs")
@@ -633,8 +655,12 @@ public class JobController {
             publicJob.put("requirements", job.getRequirements());
             publicJob.put("perks", job.getPerks());
             publicJob.put("contactEmail", job.getContactEmail());
+            String schema = jobSchemaGenerator.generateJobPostingSchema(job);
 
-            return ResponseEntity.ok(publicJob);
+            JobWithSchemaResponse response = new JobWithSchemaResponse(job, schema);
+
+            return ResponseEntity.ok(response);
+            //return ResponseEntity.ok(publicJob);
         } catch (Exception e) {
             System.err.println("Error fetching job: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching job");

@@ -67,7 +67,7 @@ public class Job {
     private String responsibilities;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id")
+    @JoinColumn(name = "emp_id")
     @JsonIgnore
     private Employee postedBy;
 
