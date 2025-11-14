@@ -1,13 +1,16 @@
 package com.recruitment.entity;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import com.recruitment.util.ShortIdGenerator;
 import jakarta.persistence.*;
+
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 public class Job {
@@ -16,22 +19,18 @@ public class Job {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @Column(name = "job_id", nullable = false, updatable = false)
+    @Column(name = "job_id", nullable = false, updatable = false, unique = true)
     private String jobId;
 
+    @Column(name = "short_id", nullable = false, updatable = false, unique = true)
+    private String shortId;
+
     private String title;
-
     private String company;
-
     private String location;
-
-    // Consistent field name
     private String highestQualification;
-
     private String minSalary;
-
     private String maxSalary;
-
     private String experience;
 
     @Column(name = "job_type")
@@ -64,7 +63,6 @@ public class Job {
     @Column(columnDefinition = "TEXT")
     private String perks;
 
-    // Fixed spelling
     @Column(columnDefinition = "TEXT")
     private String responsibilities;
 
@@ -77,34 +75,18 @@ public class Job {
     @JsonIgnore
     private Set<Application> applications;
 
+    // Many-to-Many relationship with User (inverse side)
+    @ManyToMany(mappedBy = "appliedJobs", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"appliedJobs", "password", "verificationToken"}) // Avoid sensitive data and circular references
+    private Set<User> applicants = new HashSet<>();
+
     public Job() {
     }
 
-    // Constructor
-    public Job(
-            long id,
-            String jobId,
-            String title,
-            String company,
-            String location,
-            String highestQualification,
-            String minSalary,
-            String maxSalary,
-            String experience,
-            String jobType,
-            String description,
-            String contactEmail,
-            String department,
-            String employmentType,
-            int openings,
-            LocalDate openingDate,
-            LocalDate lastDate,
-            String mode,
-            String requirements,
-            String perks,
-            String responsibilities,
-            Employee postedBy
-    ) {
+    // Constructor (update to include applicants)
+
+
+    public Job(long id, String jobId, String title, String company, String location, String highestQualification, String minSalary, String maxSalary, String experience, String jobType, String description, String contactEmail, String department, String employmentType, String shortId, int openings, LocalDate openingDate, LocalDate lastDate, String mode, String requirements, String perks, String responsibilities, Employee postedBy, Set<Application> applications, Set<User> applicants) {
         this.id = id;
         this.jobId = jobId;
         this.title = title;
@@ -119,6 +101,7 @@ public class Job {
         this.contactEmail = contactEmail;
         this.department = department;
         this.employmentType = employmentType;
+        this.shortId = shortId;
         this.openings = openings;
         this.openingDate = openingDate;
         this.lastDate = lastDate;
@@ -127,6 +110,8 @@ public class Job {
         this.perks = perks;
         this.responsibilities = responsibilities;
         this.postedBy = postedBy;
+        this.applications = applications;
+        this.applicants = applicants;
     }
 
     @PrePersist
@@ -134,9 +119,21 @@ public class Job {
         if (this.jobId == null) {
             this.jobId = UUID.randomUUID().toString();
         }
+        if (this.shortId == null || this.shortId.isEmpty()) {
+            this.shortId = ShortIdGenerator.generateShortId();
+        }
     }
 
-    // Getters and Setters
+    // Getters and Setters (add getters/setters for applicants)
+
+
+    public String getShortId() {
+        return shortId;
+    }
+
+    public void setShortId(String shortId) {
+        this.shortId = shortId;
+    }
 
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }
@@ -203,4 +200,10 @@ public class Job {
 
     public Employee getPostedBy() { return postedBy; }
     public void setPostedBy(Employee postedBy) { this.postedBy = postedBy; }
+
+    public Set<Application> getApplications() { return applications; }
+    public void setApplications(Set<Application> applications) { this.applications = applications; }
+
+    public Set<User> getApplicants() { return applicants; }
+    public void setApplicants(Set<User> applicants) { this.applicants = applicants; }
 }

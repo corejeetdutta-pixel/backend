@@ -44,22 +44,22 @@ ALTER TABLE employees ADD COLUMN IF NOT EXISTS date_of_birth DATE;
 ALTER TABLE employees ALTER COLUMN date_of_birth SET NOT NULL;
 
 -- Ensure aadhar_number exists, required, and unique
-ALTER TABLE employees ADD COLUMN IF NOT EXISTS aadhar_number VARCHAR(255);
-ALTER TABLE employees ALTER COLUMN aadhar_number SET NOT NULL;
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_aadhar_number_key') THEN
-        ALTER TABLE employees ADD CONSTRAINT employees_aadhar_number_key UNIQUE (aadhar_number);
-    END IF;
-END $$;
+--ALTER TABLE employees ADD COLUMN IF NOT EXISTS aadhar_number VARCHAR(255);
+--ALTER TABLE employees ALTER COLUMN aadhar_number SET NOT NULL;
+--DO $$ BEGIN
+--    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_aadhar_number_key') THEN
+--        ALTER TABLE employees ADD CONSTRAINT employees_aadhar_number_key UNIQUE (aadhar_number);
+--    END IF;
+--END $$;
 
 -- Ensure pan_number exists, required, and unique
-ALTER TABLE employees ADD COLUMN IF NOT EXISTS pan_number VARCHAR(255);
-ALTER TABLE employees ALTER COLUMN pan_number SET NOT NULL;
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_pan_number_key') THEN
-        ALTER TABLE employees ADD CONSTRAINT employees_pan_number_key UNIQUE (pan_number);
-    END IF;
-END $$;
+--ALTER TABLE employees ADD COLUMN IF NOT EXISTS pan_number VARCHAR(255);
+--ALTER TABLE employees ALTER COLUMN pan_number SET NOT NULL;
+--DO $$ BEGIN
+--    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_pan_number_key') THEN
+--        ALTER TABLE employees ADD CONSTRAINT employees_pan_number_key UNIQUE (pan_number);
+--    END IF;
+--END $$;
 
 -- Ensure profile_picture exists
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS profile_picture TEXT;

@@ -47,6 +47,7 @@ public class SecurityConfig {
         "/api/admin/employees",
         "/api/jobs/all",
         "/api/jobs/view/**",
+            "/api/jobs/view-shortid/**",
         "/api/jobs/filter",
         "/api/public/**",
         "/sitemap-jobs.xml"

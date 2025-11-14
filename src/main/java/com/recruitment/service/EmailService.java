@@ -1,6 +1,5 @@
 package com.recruitment.service;
 
-import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 import java.net.URLDecoder;
 import jakarta.mail.internet.MimeMessage;
@@ -12,6 +11,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import com.recruitment.entity.User;
 
 @Service
 public class EmailService {
@@ -25,7 +25,6 @@ public class EmailService {
     @Value("${spring.mail.frontendUrl:http://localhost:5173}")
     private String frontendUrl;
 
-    // Email types for dynamic handling
     public enum EmailType {
         USER_VERIFICATION,
         EMPLOYEE_VERIFICATION,
@@ -34,7 +33,6 @@ public class EmailService {
         APPLICATION_SUBMISSION
     }
 
-    // Extract the actual token from URL or raw string
     private String extractToken(String tokenOrUrl) {
         if (tokenOrUrl == null) return "";
         String s = tokenOrUrl.trim();
@@ -56,12 +54,10 @@ public class EmailService {
         }
     }
 
-    // ✅ UPDATED: Dynamic Verification Email for both User and Employee
     public void sendVerificationEmail(String to, String name, String tokenOrUrl) {
         sendVerificationEmail(to, name, tokenOrUrl, EmailType.USER_VERIFICATION);
     }
 
-    // ✅ NEW: Overloaded method with EmailType parameter
     public void sendVerificationEmail(String to, String name, String tokenOrUrl, EmailType emailType) {
         try {
             String token = extractToken(tokenOrUrl);
@@ -70,7 +66,6 @@ public class EmailService {
             String userType;
             String welcomeMessage;
 
-            // ✅ DYNAMIC: Determine email content based on type
             switch (emailType) {
                 case EMPLOYEE_VERIFICATION:
                     verificationUrl = frontendUrl + "/verify-employee?token=" + token;
@@ -86,10 +81,6 @@ public class EmailService {
                     welcomeMessage = "Thank you for registering as a Candidate with our Recruitment Portal.";
                     break;
             }
-
-            System.out.println("📨 Sending " + userType.toUpperCase() + " verification email to: " + to);
-            System.out.println("   Extracted token: " + token);
-            System.out.println("🔗 Final " + userType.toUpperCase() + " verification URL: " + verificationUrl);
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -118,17 +109,14 @@ public class EmailService {
 
             helper.setText(content, true);
             mailSender.send(message);
-
-            System.out.println("✅ " + userType.toUpperCase() + " Verification email sent successfully to " + to);
         } catch (Exception e) {
             System.err.println("❌ Failed to send verification email: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    // ✅ UPDATED: Dynamic Login Notification
     public void sendLoginNotification(String email, String name) {
-        sendLoginNotification(email, name, EmailType.USER_VERIFICATION); // Default to user
+        sendLoginNotification(email, name, EmailType.USER_VERIFICATION);
     }
 
     public void sendLoginNotification(String email, String name, EmailType userType) {
@@ -154,13 +142,11 @@ public class EmailService {
 
             helper.setText(content, true);
             mailSender.send(message);
-            System.out.println("✅ Login notification email sent to " + email);
         } catch (Exception e) {
             System.err.println("❌ Failed to send login notification: " + e.getMessage());
         }
     }
 
-    // ✅ NEW: Password Reset Email
     public void sendPasswordResetEmail(String to, String name, String resetToken, EmailType userType) {
         try {
             String resetUrl = frontendUrl + "/reset-password?token=" + resetToken;
@@ -194,13 +180,11 @@ public class EmailService {
 
             helper.setText(content, true);
             mailSender.send(message);
-            System.out.println("✅ Password reset email sent to " + to);
         } catch (Exception e) {
             System.err.println("❌ Failed to send password reset email: " + e.getMessage());
         }
     }
 
-    // Other email methods remain the same...
     public void sendSimpleMessage(String to, String subject, String text) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -209,7 +193,6 @@ public class EmailService {
             message.setSubject(subject);
             message.setText(text);
             mailSender.send(message);
-            System.out.println("📧 Simple email sent to " + to);
         } catch (Exception e) {
             System.err.println("❌ Failed to send simple email: " + e.getMessage());
         }
@@ -226,17 +209,16 @@ public class EmailService {
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
-            System.out.println("✅ HTML email sent to " + to);
         } catch (Exception e) {
             System.err.println("❌ Failed to send HTML email: " + e.getMessage());
             throw new RuntimeException("Failed to send HTML email", e);
         }
     }
 
-    // Application submission email method...
+    // ✅ UPDATED: Application email with User entity instead of UserDto
     public void sendApplicationEmail(
             String employerEmail,
-            com.recruitment.dto.UserDto user,
+            User user,
             String jobTitle,
             String jobId,
             String jobDescription,
@@ -245,7 +227,7 @@ public class EmailService {
     ) throws Exception {
 
         MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
         helper.setFrom(fromEmail);
         helper.setTo(employerEmail);
@@ -260,6 +242,10 @@ public class EmailService {
                 .append("<p><strong>Gender:</strong> ").append(user.getGender()).append("</p>")
                 .append("<p><strong>Qualification:</strong> ").append(user.getQualification()).append("</p>")
                 .append("<p><strong>Passout Year:</strong> ").append(user.getPassoutYear()).append("</p>")
+                .append("<p><strong>Date of Birth:</strong> ").append(user.getDob()).append("</p>")
+                .append("<p><strong>Experience:</strong> ").append(user.getExperience()).append(" years</p>")
+                .append("<p><strong>LinkedIn:</strong> ").append(user.getLinkedin()).append("</p>")
+                .append("<p><strong>GitHub:</strong> ").append(user.getGithub()).append("</p>")
                 .append("<p><strong>Skills:</strong> ").append(user.getSkills()).append("</p>")
                 .append("<p><strong>Job Title:</strong> ").append(jobTitle).append("</p>")
                 .append("<p><strong>Job ID:</strong> ").append(jobId).append("</p>")
@@ -267,32 +253,27 @@ public class EmailService {
                 .append("<p><strong>Score:</strong> ").append(score).append("</p>")
                 .append("<p><strong>Answers:</strong><br><pre>").append(answersJson).append("</pre></p>");
 
-        String resumeString = user.getResume();
+        // ✅ FIXED: Resume attachment handling with byte[]
+        byte[] resume = user.getResume();
         boolean attached = false;
 
-        if (resumeString != null && !resumeString.isBlank()) {
-            String base64Part = resumeString;
-            if (resumeString.startsWith("data:application/pdf;base64,")) {
-                base64Part = resumeString.substring("data:application/pdf;base64,".length());
-            }
-            if (isProbablyBase64(base64Part)) {
-                try {
-                    byte[] resumeBytes = Base64.getDecoder().decode(base64Part);
-                    InputStreamSource attachment = new ByteArrayResource(resumeBytes);
-                    helper.addAttachment("resume.pdf", attachment);
-                    attached = true;
-                } catch (IllegalArgumentException e) {
-                    System.out.println("⚠️ Invalid Base64 resume: " + e.getMessage());
-                }
+        if (resume != null && resume.length > 0) {
+            try {
+                InputStreamSource attachment = new ByteArrayResource(resume);
+                String fileName = user.getResumeFileName() != null ?
+                        user.getResumeFileName() : user.getName() + "_resume.pdf";
+                helper.addAttachment(fileName, attachment);
+                attached = true;
+                System.out.println("✅ Resume attached: " + fileName + " (" + resume.length + " bytes)");
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to attach resume: " + e.getMessage());
+                e.printStackTrace();
             }
         }
 
-        if (!attached && resumeString != null && !resumeString.isBlank()) {
-            sb.append("<p><strong>Resume URL:</strong> <a href=\"")
-                    .append(resumeString)
-                    .append("\">")
-                    .append(resumeString)
-                    .append("</a></p>");
+        if (!attached) {
+            sb.append("<p style='color: red;'><em>No resume attached to this application.</em></p>");
+            System.out.println("⚠️ No resume found for user: " + user.getName());
         }
 
         helper.setText(sb.toString(), true);
@@ -300,7 +281,143 @@ public class EmailService {
         System.out.println("✅ Application email sent to employer: " + employerEmail);
     }
 
-    private boolean isProbablyBase64(String input) {
-        return input.matches("^[A-Za-z0-9+/=\\r\\n]+$") && input.length() % 4 == 0;
+    // ✅ NEW: Overloaded method for backward compatibility with UserDto
+    public void sendApplicationEmail(
+            String employerEmail,
+            com.recruitment.dto.UserDto userDto,
+            String jobTitle,
+            String jobId,
+            String jobDescription,
+            String answersJson,
+            int score
+    ) throws Exception {
+
+        // Convert UserDto to User entity (minimal conversion for email purposes)
+        User user = new User();
+        user.setName(userDto.getName());
+        user.setEmail(userDto.getEmail());
+        user.setMobile(userDto.getMobile());
+        user.setAddress(userDto.getAddress());
+        user.setGender(userDto.getGender());
+        user.setQualification(userDto.getQualification());
+        user.setPassoutYear(userDto.getPassoutYear());
+        user.setDob(userDto.getDob());
+        user.setExperience(userDto.getExperience());
+        user.setLinkedin(userDto.getLinkedin());
+        user.setGithub(userDto.getGithub());
+        user.setSkills(userDto.getSkills());
+
+        // Note: Resume cannot be converted from UserDto as it's removed from DTO
+
+        sendApplicationEmail(employerEmail, user, jobTitle, jobId, jobDescription, answersJson, score);
+    }
+
+    // ✅ NEW: Method to send application confirmation to candidate
+    public void sendApplicationConfirmationToCandidate(
+            String candidateEmail,
+            String candidateName,
+            String jobTitle,
+            String companyName
+    ) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(candidateEmail);
+            helper.setSubject("Application Submitted Successfully - " + jobTitle);
+
+            String content = """
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto;'>
+                    <h2 style='color: #0260a4;'>Application Submitted Successfully!</h2>
+                    <p>Hello <strong>%s</strong>,</p>
+                    <p>Your application for the position of <strong>%s</strong> at <strong>%s</strong> has been submitted successfully.</p>
+                    <p>We will review your application and contact you if your profile matches our requirements.</p>
+                    <br>
+                    <p><strong>Application Details:</strong></p>
+                    <ul>
+                        <li><strong>Position:</strong> %s</li>
+                        <li><strong>Company:</strong> %s</li>
+                        <li><strong>Applied On:</strong> %s</li>
+                    </ul>
+                    <br>
+                    <p>You can check your application status in your candidate dashboard.</p>
+                    <br>
+                    <p>Best regards,<br>Recruitment Portal Team</p>
+                </div>
+            """.formatted(
+                    candidateName,
+                    jobTitle,
+                    companyName,
+                    jobTitle,
+                    companyName,
+                    java.time.LocalDate.now().toString()
+            );
+
+            helper.setText(content, true);
+            mailSender.send(message);
+            System.out.println("✅ Application confirmation sent to candidate: " + candidateEmail);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send application confirmation: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // ✅ NEW: Method to send application status update
+    public void sendApplicationStatusUpdate(
+            String candidateEmail,
+            String candidateName,
+            String jobTitle,
+            String companyName,
+            String status,
+            String feedback
+    ) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(candidateEmail);
+            helper.setSubject("Application Status Update - " + jobTitle);
+
+            String statusColor = "blue";
+            if ("REJECTED".equalsIgnoreCase(status)) {
+                statusColor = "red";
+            } else if ("SELECTED".equalsIgnoreCase(status)) {
+                statusColor = "green";
+            } else if ("SHORTLISTED".equalsIgnoreCase(status)) {
+                statusColor = "orange";
+            }
+
+            String content = """
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto;'>
+                    <h2 style='color: #0260a4;'>Application Status Update</h2>
+                    <p>Hello <strong>%s</strong>,</p>
+                    <p>Your application for <strong>%s</strong> at <strong>%s</strong> has been updated.</p>
+                    <br>
+                    <div style='background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid %s;'>
+                        <p style='margin: 0;'><strong>Status:</strong> <span style='color: %s; font-weight: bold;'>%s</span></p>
+                    </div>
+                    %s
+                    <br>
+                    <p>Best regards,<br>Recruitment Portal Team</p>
+                </div>
+            """.formatted(
+                    candidateName,
+                    jobTitle,
+                    companyName,
+                    statusColor,
+                    statusColor,
+                    status,
+                    feedback != null ? "<br><p><strong>Feedback:</strong> " + feedback + "</p>" : ""
+            );
+
+            helper.setText(content, true);
+            mailSender.send(message);
+            System.out.println("✅ Application status update sent to: " + candidateEmail);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send application status update: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
